@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>隨身資訊卡片夾</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .touch-target { min-height: 48px; min-width: 48px; }
+        .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .toast { transition: opacity 0.3s; pointer-events: none; }
+        .rotate-180 { transform: rotate(180deg); }
+        .transition-transform { transition: transform 0.2s ease; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-white border-b sticky top-0 z-10 p-4">
+        <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <h1 class="text-xl font-bold text-blue-600">隨身資訊卡片夾</h1>
+                <div class="hidden sm:flex border-l pl-4 gap-2">
+                    <button onclick="batchToggle(false)" class="text-xs text-gray-500 hover:text-blue-600">展開全部</button>
+                    <button onclick="batchToggle(true)" class="text-xs text-gray-500 hover:text-blue-600">收合全部</button>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="addNewCard()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 touch-target">
+                    新增卡片
+                </button>
+                <button onclick="exportData()" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 touch-target">
+                    匯出
+                </button>
+                <button onclick="document.getElementById('importInput').click()" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 touch-target">
+                    匯入
+                </button>
+                <input type="file" id="importInput" class="hidden" accept=".json" onchange="importData(event)">
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main id="cardContainer" class="max-w-5xl mx-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Cards will be injected here -->
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full opacity-0 z-50">
+        已複製到剪貼簿
+    </div>
+
+    <script>
+        // --- IndexedDB Logic ---
+        const DB_NAME = 'VaultDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'cards';
+        let db;
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => {
+                    db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve();
+                };
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function getAllCards() {
+            return new Promise((resolve) => {
+                const transaction = db.transaction(STORE_NAME, 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+            });
+        }
+
+        async function saveCard(card) {
+            const transaction = db.transaction(STORE_NAME, 'readwrite');
+            transaction.objectStore(STORE_NAME).put(card);
+        }
+
+        function deleteCardFromDB(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(STORE_NAME, 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.delete(id);
+                transaction.oncomplete = () => resolve();
+                transaction.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        // --- Application Logic ---
+        let appData = [];
+
+        async function renderApp() {
+            appData = await getAllCards();
+            const container = document.getElementById('cardContainer');
+            container.innerHTML = '';
+
+            appData.forEach(card => {
+                const cardEl = createCardElement(card);
+                container.appendChild(cardEl);
+            });
+        }
+
+        function createCardElement(card) {
+            const isCollapsed = card.isCollapsed || false;
+            const div = document.createElement('div');
+            div.className = 'bg-white rounded-xl border border-gray-200 card-shadow p-5 flex flex-col gap-4 self-start';
+            div.innerHTML = `
+                <div class="flex justify-between items-center gap-2">
+                    <button onclick="toggleCardCollapse('${card.id}')" class="text-gray-400 hover:text-blue-500 p-1 transition-transform ${isCollapsed ? '' : 'rotate-180'}">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <input type="text" value="${card.title}" 
+                        onchange="updateCardTitle('${card.id}', this.value)"
+                        class="text-lg font-bold border-none focus:ring-2 focus:ring-blue-500 rounded px-1 w-full" 
+                        placeholder="卡片標題">
+                    <button onclick="confirmDeleteCard('${card.id}')" class="text-red-300 hover:text-red-500 p-2 hover:bg-red-50 rounded-full">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M19 4h-3.5l-1-1h-5l-1 1H5v2h14V4zM6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12z"/></svg>
+                    </button>
+                </div>
+                <div id="content-${card.id}" class="${isCollapsed ? 'hidden' : 'flex flex-col gap-4'}">
+                    <div id="fields-${card.id}" class="flex flex-col gap-3">
+                        ${card.fields.map((f, idx) => createFieldHTML(card.id, idx, f)).join('')}
+                    </div>
+                    <button onclick="addField('${card.id}')" class="mt-2 text-blue-600 font-medium flex items-center justify-center gap-1 p-3 border-2 border-dashed border-blue-100 rounded-lg hover:bg-blue-50">
+                        + 新增欄位
+                    </button>
+                </div>
+            `;
+            return div;
+        }
+
+        function createFieldHTML(cardId, index, field) {
+            return `
+                <div class="flex items-center gap-2 group">
+                    <div class="flex-1 flex flex-col gap-1">
+                        <input type="text" placeholder="欄位名稱" value="${field.label}"
+                            onchange="updateField('${cardId}', ${index}, 'label', this.value)"
+                            class="text-xs text-gray-500 border-none p-0 focus:ring-0">
+                        <input type="text" placeholder="資料內容" value="${field.value}"
+                            onchange="updateField('${cardId}', ${index}, 'value', this.value)"
+                            class="text-sm font-medium border-b border-gray-100 focus:border-blue-500 focus:ring-0 p-0 pb-1 w-full">
+                    </div>
+                    <div class="flex gap-1">
+                        <button onclick="pasteToField('${cardId}', ${index})" 
+                            class="p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 touch-target" title="貼上">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        </button>
+                        <button onclick="copyFromField('${cardId}', ${index})" 
+                            class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 touch-target" title="複製">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
+                        </button>
+                        <button onclick="removeField('${cardId}', ${index})" 
+                            class="p-2 text-gray-300 hover:text-red-400 touch-target" title="刪除欄位">
+                            <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- Interaction Handlers ---
+        async function addNewCard() {
+            const newCard = {
+                id: Date.now().toString(),
+                title: '未命名卡片',
+                isCollapsed: false,
+                fields: [{ label: '名稱', value: '' }]
+            };
+            await saveCard(newCard);
+            renderApp();
+        }
+
+        async function toggleCardCollapse(id) {
+            const card = appData.find(c => c.id === id);
+            if (card) {
+                card.isCollapsed = !card.isCollapsed;
+                await saveCard(card);
+                renderApp();
+            }
+        }
+
+        async function batchToggle(collapsed) {
+            const transaction = db.transaction(STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+            appData.forEach(card => {
+                card.isCollapsed = collapsed;
+                store.put(card);
+            });
+            transaction.oncomplete = () => renderApp();
+        }
+
+        async function updateCardTitle(id, val) {
+            const card = appData.find(c => c.id === id);
+            if (card) {
+                card.title = val;
+                await saveCard(card);
+            }
+        }
+
+        async function addField(id) {
+            const card = appData.find(c => c.id === id);
+            if (card) {
+                card.fields.push({ label: '', value: '' });
+                await saveCard(card);
+                renderApp();
+            }
+        }
+
+        async function updateField(cardId, index, key, val) {
+            const card = appData.find(c => c.id === cardId);
+            if (card && card.fields[index]) {
+                card.fields[index][key] = val;
+                await saveCard(card);
+            }
+        }
+
+        async function removeField(cardId, index) {
+            const card = appData.find(c => c.id === cardId);
+            if (card) {
+                card.fields.splice(index, 1);
+                await saveCard(card);
+                renderApp();
+            }
+        }
+
+        async function confirmDeleteCard(id) {
+            if (confirm('確定要刪除這張卡片嗎？')) {
+                await deleteCardFromDB(id);
+                renderApp();
+            }
+        }
+
+        // --- Clipboard Service ---
+        async function copyFromField(cardId, index) {
+            const card = appData.find(c => c.id === cardId);
+            if (card && card.fields[index]) {
+                const text = card.fields[index].value;
+                if (!text) return showToast('欄位內容為空');
+                try {
+                    await navigator.clipboard.writeText(text);
+                    showToast(`已複製: ${text.substring(0, 10)}${text.length > 10 ? '...' : ''}`);
+                } catch (err) {
+                    console.error('Copy failed', err);
+                }
+            }
+        }
+
+        async function pasteToField(cardId, index) {
+            try {
+                const text = await navigator.clipboard.readText();
+                const card = appData.find(c => c.id === cardId);
+                if (card && card.fields[index]) {
+                    card.fields[index].value = text;
+                    await saveCard(card);
+                    renderApp();
+                    showToast('已從剪貼簿貼上');
+                }
+            } catch (err) {
+                alert('無法讀取剪貼簿，請確保已授權權限並使用 HTTPS 環境。');
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.opacity = '1';
+            setTimeout(() => toast.style.opacity = '0', 2000);
+        }
+
+        // --- Import / Export ---
+        async function exportData() {
+            const data = await getAllCards();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `vault_backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!Array.isArray(data)) throw new Error('格式錯誤');
+                    
+                    const transaction = db.transaction(STORE_NAME, 'readwrite');
+                    const store = transaction.objectStore(STORE_NAME);
+                    store.clear();
+                    data.forEach(item => store.put(item));
+                    
+                    transaction.oncomplete = () => {
+                        alert('資料匯入完成');
+                        location.reload();
+                    };
+                } catch (err) {
+                    alert('匯入失敗：無效的 JSON 檔案');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // --- Init ---
+        window.onload = async () => {
+            await initDB();
+            renderApp();
+        };
+    </script>
+</body>
+</html>
+
