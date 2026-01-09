@@ -92,7 +92,8 @@
         100% { opacity: 0; transform: translateY(-20px); }
     }
     .toast-message {
-        animation: fade-in-out 2s ease forwards;
+        animation: fade-in-out 3s ease forwards;
+        z-index: 9999;
     }
     /* CR-012: Accordion Transition */
     .wallet-content {
@@ -133,7 +134,7 @@
         border-radius: 2px;
     }
 
-    /* Loading Spinner for Google Drive */
+    /* Loading Spinner */
     .spinner {
         border: 2px solid rgba(255, 255, 255, 0.3);
         border-left-color: #ffffff;
@@ -149,7 +150,6 @@
 <main class="w-full max-w-3xl bg-surface-light rounded-xl shadow-xl overflow-hidden border border-border-light flex flex-col relative h-[85vh] sm:h-auto sm:min-h-[700px]">
 <!-- CR-009: Clean Header + CR-015: Settings Button -->
 <header class="flex items-center justify-between px-8 py-5 border-b border-border-light sticky top-0 bg-surface-light/90 backdrop-blur-md z-10">
-    <!-- Placeholder for centering -->
     <div class="w-9"></div>
     <h1 class="text-lg font-bold tracking-tight text-slate-900">Data Entry Details</h1>
     <!-- Settings Button -->
@@ -215,7 +215,7 @@
     </div>
 </dialog>
 
-<!-- CR-014/015/016/017: Settings Dialog -->
+<!-- CR-014/015/016/017/018: Settings Dialog -->
 <dialog id="settings-dialog" class="rounded-xl shadow-2xl p-0 w-full max-w-md bg-white overflow-hidden">
     <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
         <h3 class="font-semibold text-slate-800">Settings</h3>
@@ -226,7 +226,7 @@
     <div class="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
         <!-- Local Backup (Updated for iOS Share) -->
         <div>
-            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Local Device</h4>
+            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Local Device / iCloud</h4>
             <div class="grid grid-cols-2 gap-3">
                 <button id="export-btn" class="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-slate-200 hover:border-primary hover:bg-blue-50 text-slate-700 hover:text-primary transition-all">
                     <span class="material-symbols-outlined text-[20px]">ios_share</span>
@@ -239,14 +239,31 @@
                 <input type="file" id="import-file" class="hidden" accept=".json">
             </div>
             <p class="text-[10px] text-slate-400 mt-2">
-                On iPhone, click <b>Backup</b> then choose <b>"Save to Files"</b> to store safely.
+                <b>iPhone Users:</b> Click <b>Backup</b> -> <b>"Save to Files"</b> -> select <b>Google Drive</b> or iCloud to save securely.
             </p>
         </div>
 
-        <!-- Cloud Backup (Google Drive Mock) -->
+        <!-- Cloud Backup (Real Google Drive) -->
         <div class="border-t border-slate-100 pt-6">
             <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Cloud Storage (Google Drive)</h4>
             
+            <!-- Developer Config Section -->
+            <details class="mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                <summary class="text-xs font-bold text-slate-600 cursor-pointer select-none">Developer Settings (Required for API)</summary>
+                <div class="mt-3 space-y-3">
+                    <div>
+                        <label class="block text-[10px] text-slate-500 uppercase tracking-wider mb-1">Client ID</label>
+                        <input type="password" id="g-client-id" class="w-full text-xs rounded border-slate-300" placeholder="Required for real connection">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-500 uppercase tracking-wider mb-1">API Key</label>
+                        <input type="password" id="g-api-key" class="w-full text-xs rounded border-slate-300" placeholder="Required for real connection">
+                    </div>
+                    <button id="g-save-config-btn" class="w-full py-1.5 bg-slate-200 hover:bg-slate-300 text-xs font-bold text-slate-600 rounded">Save API Keys</button>
+                    <p class="text-[10px] text-red-400 mt-1">Leave empty to use Simulation Mode.</p>
+                </div>
+            </details>
+
             <!-- Not Connected State -->
             <div id="gdrive-connect-view">
                 <button id="gdrive-connect-btn" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium transition-all shadow-sm">
@@ -271,16 +288,15 @@
                         Restore
                     </button>
                 </div>
-                <p id="gdrive-status-text" class="text-[10px] text-slate-400 text-center">Last backup: Never</p>
+                <p id="gdrive-status-text" class="text-[10px] text-slate-400 text-center">Ready</p>
+                <button id="gdrive-signout-btn" class="text-[10px] text-red-500 hover:underline w-full text-center">Sign Out</button>
             </div>
         </div>
         
         <!-- Appearance Settings -->
         <div class="border-t border-slate-100 pt-6">
             <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Appearance</h4>
-            
             <div class="space-y-4">
-                <!-- Background Image -->
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-2">Background Image</label>
                     <label class="flex items-center justify-center w-full h-20 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-primary hover:bg-blue-50 transition-all">
@@ -292,8 +308,6 @@
                     </label>
                     <button id="reset-bg-btn" class="text-xs text-red-500 hover:underline mt-2">Remove Background</button>
                 </div>
-
-                <!-- Scaling -->
                 <div>
                     <div class="flex justify-between mb-1">
                         <label class="text-sm font-medium text-slate-700">Image Scale</label>
@@ -301,8 +315,6 @@
                     </div>
                     <input type="range" id="bg-scale" min="50" max="200" value="100" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
                 </div>
-
-                <!-- Opacity -->
                 <div>
                     <div class="flex justify-between mb-1">
                         <label class="text-sm font-medium text-slate-700">Card Transparency</label>
@@ -316,7 +328,11 @@
 </dialog>
 
 <!-- Toast Container -->
-<div id="toast-container" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none"></div>
+<div id="toast-container" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[60] pointer-events-none w-max max-w-[90vw]"></div>
+
+<!-- Google Scripts -->
+<script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+<script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 
 <script>
     // --- CR-002: Service Worker (Unchanged) ---
@@ -338,49 +354,27 @@
 
     // --- CR-003 / CR-014 / CR-015: IndexedDB Data Layer ---
     const DB_NAME = 'LegacyDataDB';
-    const DB_VERSION = 2; // Upgraded for Settings Store
+    const DB_VERSION = 2;
     let db;
 
     const SEED_DATA = [
-        { 
-            type: 'wallet', 
-            icon: 'folder', 
-            label: 'Project Info', 
-            items: [
-                { id: 1, label: 'Project Name', value: 'Q4 Marketing Initiative' },
-                { id: 2, label: 'Budget', value: '$45,000.00' }
-            ]
-        },
-        { 
-            type: 'wallet', 
-            icon: 'person', 
-            label: 'Passport Details', 
-            items: [
-                { id: 1, label: 'Passport No.', value: 'A123456789' },
-                { id: 2, label: 'Full Name', value: 'John Doe' },
-                { id: 3, label: 'Expiry Date', value: '2030-12-31' }
-            ] 
-        }
+        { type: 'wallet', icon: 'folder', label: 'Project Info', items: [{ id: 1, label: 'Project Name', value: 'Q4 Marketing Initiative' }, { id: 2, label: 'Budget', value: '$45,000.00' }] }
     ];
 
     function initDB() {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(DB_NAME, DB_VERSION);
             request.onerror = () => reject('DB Error');
-            
             request.onupgradeneeded = event => {
                 const db = event.target.result;
-                // Field Store
                 if (!db.objectStoreNames.contains('fields')) {
                     const store = db.createObjectStore('fields', { keyPath: 'id', autoIncrement: true });
                     SEED_DATA.forEach(item => store.add(item));
                 }
-                // CR-015: Settings Store
                 if (!db.objectStoreNames.contains('settings')) {
                     db.createObjectStore('settings', { keyPath: 'key' });
                 }
             };
-            
             request.onsuccess = event => {
                 db = event.target.result;
                 resolve(db);
@@ -418,7 +412,7 @@
         return new Promise((resolve) => { transaction.oncomplete = () => resolve(); });
     }
 
-    // --- CR-015: Settings API ---
+    // --- Settings API ---
     async function getSettings() {
         return new Promise((resolve) => {
             const transaction = db.transaction(['settings'], 'readonly');
@@ -437,76 +431,55 @@
     }
 
     // --- Helper: Toast ---
-    function showToast(message, duration = 2000) {
+    function showToast(message, type = 'success') {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
-        toast.className = 'toast-message bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2';
-        toast.innerHTML = `<span class="material-symbols-outlined text-[18px] text-green-400">check_circle</span> ${message}`;
+        const bgClass = type === 'error' ? 'bg-red-600' : 'bg-slate-800';
+        const icon = type === 'error' ? 'error' : 'check_circle';
+        
+        toast.className = `toast-message ${bgClass} text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2`;
+        toast.innerHTML = `<span class="material-symbols-outlined text-[18px] text-white/80">${icon}</span> ${message}`;
         container.appendChild(toast);
-        setTimeout(() => toast.remove(), duration);
+        setTimeout(() => toast.remove(), 3000);
     }
 
     // --- CR-012: Rendering Logic ---
     function renderFields(fields) {
         const container = document.getElementById('fields-container');
         container.innerHTML = '';
-
         if (fields.length === 0) {
-             container.innerHTML = `
-                <div class="h-64 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-center p-8">
-                    <h4 class="text-lg font-semibold text-slate-900 mb-2">No Wallets</h4>
-                </div>`;
+             container.innerHTML = `<div class="h-64 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-center p-8"><h4 class="text-lg font-semibold text-slate-900 mb-2">No Wallets</h4></div>`;
              return;
         }
-
         fields.forEach(wallet => {
             const items = wallet.items || (wallet.value ? [{ id: Date.now(), label: 'Value', value: wallet.value }] : []);
             const itemCount = items.length;
             const walletJson = encodeURIComponent(JSON.stringify(wallet));
-
             const walletHtml = `
             <div class="wallet-card group bg-white border border-slate-200 rounded-xl overflow-hidden transition-all duration-300 hover:shadow-md" data-id="${wallet.id}" data-wallet-json="${walletJson}">
-                <!-- Header -->
                 <div class="wallet-header flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 select-none">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-blue-50 text-primary flex items-center justify-center">
-                            <span class="material-symbols-outlined">${wallet.icon || 'folder'}</span>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-slate-700 text-sm uppercase tracking-wide">${wallet.label}</h4>
-                            <p class="text-xs text-slate-400 mt-0.5">${itemCount} Items</p>
-                        </div>
+                        <div class="w-10 h-10 rounded-lg bg-blue-50 text-primary flex items-center justify-center"><span class="material-symbols-outlined">${wallet.icon || 'folder'}</span></div>
+                        <div><h4 class="font-bold text-slate-700 text-sm uppercase tracking-wide">${wallet.label}</h4><p class="text-xs text-slate-400 mt-0.5">${itemCount} Items</p></div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button class="action-btn delete-wallet-btn p-2 rounded-full text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors" title="Delete Wallet">
-                            <span class="material-symbols-outlined text-[20px]">delete</span>
-                        </button>
+                        <button class="action-btn delete-wallet-btn p-2 rounded-full text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors" title="Delete Wallet"><span class="material-symbols-outlined text-[20px]">delete</span></button>
                         <span class="material-symbols-outlined text-slate-400 chevron-icon">expand_more</span>
                     </div>
                 </div>
-
-                <!-- Content -->
                 <div class="wallet-content bg-slate-50 border-t border-slate-100">
                     <div class="p-3 space-y-2">
                         ${items.map(item => {
                             const escapedValue = String(item.value).replace(/"/g, '&quot;');
-                            return `
-                            <div class="item-card bg-white rounded-lg border border-slate-200 shadow-sm flex overflow-hidden select-none" data-item-id="${item.id}">
+                            return `<div class="item-card bg-white rounded-lg border border-slate-200 shadow-sm flex overflow-hidden select-none" data-item-id="${item.id}">
                                 <div class="edit-zone flex-1 p-3 min-w-0 cursor-pointer hover:bg-slate-50 transition-colors flex flex-col justify-center border-r border-slate-100/50">
                                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">${item.label}</p>
                                     <p class="text-slate-800 font-medium text-sm truncate select-all">${item.value}</p>
                                 </div>
-                                <div class="copy-zone w-24 flex flex-col items-center justify-center bg-slate-50 border-l border-slate-100 cursor-pointer hover:bg-primary hover:text-white text-slate-400 active:bg-primary-hover transition-all" data-copy-value="${escapedValue}" title="Click to Copy">
-                                    <span class="material-symbols-outlined text-2xl mb-1">content_copy</span>
-                                    <span class="text-[10px] font-bold tracking-wider">COPY</span>
-                                </div>
-                            </div>
-                            `;
+                                <div class="copy-zone w-24 flex flex-col items-center justify-center bg-slate-50 border-l border-slate-100 cursor-pointer hover:bg-primary hover:text-white text-slate-400 active:bg-primary-hover transition-all" data-copy-value="${escapedValue}" title="Click to Copy"><span class="material-symbols-outlined text-2xl mb-1">content_copy</span><span class="text-[10px] font-bold tracking-wider">COPY</span></div>
+                            </div>`;
                         }).join('')}
-                        <button class="add-item-btn w-full py-2.5 mt-2 rounded-lg border border-dashed border-slate-300 text-slate-500 text-xs font-medium hover:border-primary hover:text-primary hover:bg-white transition-all flex items-center justify-center gap-1">
-                            <span class="material-symbols-outlined text-[16px]">add</span>
-                            Add Item
-                        </button>
+                        <button class="add-item-btn w-full py-2.5 mt-2 rounded-lg border border-dashed border-slate-300 text-slate-500 text-xs font-medium hover:border-primary hover:text-primary hover:bg-white transition-all flex items-center justify-center gap-1"><span class="material-symbols-outlined text-[16px]">add</span>Add Item</button>
                     </div>
                 </div>
             </div>`;
@@ -514,109 +487,253 @@
         });
     }
 
-    // --- CR-017: Smart Local Backup (iOS Share API) ---
+    // --- CR-017: Smart Local Backup ---
     async function handleExport() {
         const fields = await getAllFields();
         const dataStr = JSON.stringify(fields, null, 2);
         const fileName = `data-entry-backup-${new Date().toISOString().slice(0,10)}.json`;
-        
-        // CR-017: Try Native Share First (Best for iOS)
         if (navigator.canShare && navigator.canShare({ files: [new File([dataStr], fileName, { type: "application/json" })] })) {
             try {
                 const file = new File([dataStr], fileName, { type: "application/json" });
-                await navigator.share({
-                    files: [file],
-                    title: 'Data Entry Backup',
-                    text: 'Backup file from Data Entry App'
-                });
-                return; // Success, stop here
-            } catch (err) {
-                if (err.name !== 'AbortError') console.error(err);
-                // If share fails, fall back to simple download
-            }
+                await navigator.share({ files: [file], title: 'Data Entry Backup', text: 'Backup file from Data Entry App' });
+                return;
+            } catch (err) { if (err.name !== 'AbortError') console.error(err); }
         }
-
-        // Fallback for Desktop/Non-Share Browsers
         const blob = new Blob([dataStr], { type: "application/json" });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        const a = document.createElement('a'); a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
         showToast("Backup Downloaded");
     }
 
     async function handleImport(event) {
         const file = event.target.files[0];
         if (!file) return;
-
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
                 const importedData = JSON.parse(e.target.result);
                 if (!Array.isArray(importedData)) throw new Error("Invalid Format");
-                for (const item of importedData) {
-                    await updateField(item);
-                }
+                for (const item of importedData) { await updateField(item); }
                 renderFields(await getAllFields());
                 showToast("Data Restored Successfully");
-            } catch (err) {
-                alert("Failed to import: Invalid JSON file");
-                console.error(err);
-            }
+            } catch (err) { alert("Failed to import: Invalid JSON file"); }
         };
         reader.readAsText(file);
     }
 
-    // --- CR-016: Google Drive Mock Logic ---
+    // --- CR-018: Real Google Drive API Logic ---
+    let tokenClient;
+    let gapiInited = false;
+    let gisInited = false;
+    let googleConfig = { clientId: '', apiKey: '' };
+
+    function gapiLoaded() { gapi.load('client', initializeGapiClient); }
+    async function initializeGapiClient() { 
+        // We defer init until keys are provided
+        gapiInited = true; 
+    }
+    function gisLoaded() { gisInited = true; }
+
     const gConnectBtn = document.getElementById('gdrive-connect-btn');
     const gConnectView = document.getElementById('gdrive-connect-view');
     const gActionsView = document.getElementById('gdrive-actions-view');
     const gBackupBtn = document.getElementById('gdrive-backup-btn');
     const gRestoreBtn = document.getElementById('gdrive-restore-btn');
+    const gSignOutBtn = document.getElementById('gdrive-signout-btn');
     const gStatusText = document.getElementById('gdrive-status-text');
+    const gClientIdInput = document.getElementById('g-client-id');
+    const gApiKeyInput = document.getElementById('g-api-key');
+    const gSaveConfigBtn = document.getElementById('g-save-config-btn');
 
-    // Simulate Connection
-    gConnectBtn.onclick = () => {
-        const originalText = gConnectBtn.innerHTML;
-        gConnectBtn.innerHTML = '<div class="spinner"></div> Connecting...';
-        setTimeout(() => {
-            gConnectView.classList.add('hidden');
-            gActionsView.classList.remove('hidden');
-            showToast("Connected to Google Drive");
-        }, 1500);
+    // Save Keys Logic
+    gSaveConfigBtn.onclick = async () => {
+        const clientId = gClientIdInput.value.trim();
+        const apiKey = gApiKeyInput.value.trim();
+        
+        currentConfig.google_config = { clientId, apiKey };
+        await saveSettings(currentConfig);
+        showToast("API Keys Saved");
+        
+        // Reload page to re-init with new keys? Or just re-assign
+        googleConfig = { clientId, apiKey };
     };
 
-    // Simulate Backup
+    // Connect Button
+    gConnectBtn.onclick = async () => {
+        if (!googleConfig.clientId || !googleConfig.apiKey) {
+            // Use Simulation Mode if no keys
+            gConnectBtn.innerHTML = '<div class="spinner"></div> Simulating...';
+            setTimeout(() => {
+                gConnectView.classList.add('hidden');
+                gActionsView.classList.remove('hidden');
+                showToast("Simulation Mode Active (No real data saved)", "error");
+            }, 1000);
+            return;
+        }
+
+        // Real Mode
+        if (!gapiInited || !gisInited) { showToast("Google Libraries not loaded", "error"); return; }
+        
+        try {
+            await gapi.client.init({
+                apiKey: googleConfig.apiKey,
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+            });
+            
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: googleConfig.clientId,
+                scope: 'https://www.googleapis.com/auth/drive.file',
+                callback: async (resp) => {
+                    if (resp.error) throw resp;
+                    gConnectView.classList.add('hidden');
+                    gActionsView.classList.remove('hidden');
+                    showToast("Connected to Google Drive");
+                },
+            });
+            tokenClient.requestAccessToken({ prompt: 'consent' });
+        } catch (err) {
+            console.error(err);
+            showToast("Connection Failed: Check Console", "error");
+        }
+    };
+
+    // Sign Out
+    gSignOutBtn.onclick = () => {
+        const token = gapi.client.getToken();
+        if (token !== null) {
+            google.accounts.oauth2.revoke(token.access_token, () => {
+                gapi.client.setToken('');
+                gConnectView.classList.remove('hidden');
+                gActionsView.classList.add('hidden');
+                showToast("Signed Out");
+            });
+        } else {
+            // Sim mode signout
+            gConnectView.classList.remove('hidden');
+            gActionsView.classList.add('hidden');
+        }
+    };
+
+    // Backup Logic (Real + Sim)
     gBackupBtn.onclick = async () => {
         const originalContent = gBackupBtn.innerHTML;
         gBackupBtn.innerHTML = '<div class="spinner"></div> Uploading...';
         gBackupBtn.disabled = true;
-        
-        // Mock delay
-        setTimeout(() => {
+
+        if (!googleConfig.clientId) {
+            // Simulation
+            setTimeout(() => {
+                gBackupBtn.innerHTML = originalContent;
+                gBackupBtn.disabled = false;
+                showToast("Backup Simulated (Success)");
+            }, 1500);
+            return;
+        }
+
+        // Real API
+        try {
+            const fields = await getAllFields();
+            const fileContent = JSON.stringify(fields, null, 2);
+            const file = new Blob([fileContent], { type: 'application/json' });
+            const metadata = {
+                'name': 'data-entry-backup.json',
+                'mimeType': 'application/json'
+            };
+
+            // Check if file exists
+            const response = await gapi.client.drive.files.list({
+                q: "name = 'data-entry-backup.json' and trashed = false",
+                fields: 'files(id, name)'
+            });
+            
+            const existingFile = response.result.files[0];
+            
+            // Multipart upload logic (Simplified for demo, usually requires boundary construction)
+            // For GAPI client, we use a simpler approach or the dedicated upload endpoint.
+            // NOTE: gapi.client.drive.files.create doesn't support media body directly in basic usage easily.
+            // We'll use a standard fetch with the token for upload to be robust.
+            
+            const accessToken = gapi.client.getToken().access_token;
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', file);
+
+            let fetchUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+            let method = 'POST';
+
+            if (existingFile) {
+                fetchUrl = `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}?uploadType=multipart`;
+                method = 'PATCH';
+            }
+
+            const uploadResp = await fetch(fetchUrl, {
+                method: method,
+                headers: new Headers({ 'Authorization': 'Bearer ' + accessToken }),
+                body: form
+            });
+
+            if (!uploadResp.ok) throw new Error('Upload failed');
+
+            gStatusText.textContent = `Last backup: ${new Date().toLocaleTimeString()}`;
+            showToast("Backup Uploaded to Google Drive");
+
+        } catch (err) {
+            console.error(err);
+            showToast("Upload Failed", "error");
+        } finally {
             gBackupBtn.innerHTML = originalContent;
             gBackupBtn.disabled = false;
-            gStatusText.textContent = `Last backup: ${new Date().toLocaleTimeString()}`;
-            showToast("Backup saved to Drive (Simulated)");
-        }, 2000);
+        }
     };
 
-    // Simulate Restore
+    // Restore Logic (Real + Sim)
     gRestoreBtn.onclick = async () => {
         const originalContent = gRestoreBtn.innerHTML;
-        gRestoreBtn.innerHTML = '<div class="spinner"></div> Checking...';
+        gRestoreBtn.innerHTML = '<div class="spinner"></div> Downloading...';
         gRestoreBtn.disabled = true;
-        
-        setTimeout(() => {
+
+        if (!googleConfig.clientId) {
+            setTimeout(() => {
+                gRestoreBtn.innerHTML = originalContent;
+                gRestoreBtn.disabled = false;
+                showToast("Restore Simulated (Success)");
+            }, 1500);
+            return;
+        }
+
+        try {
+            const response = await gapi.client.drive.files.list({
+                q: "name = 'data-entry-backup.json' and trashed = false",
+                fields: 'files(id, name)'
+            });
+            
+            const existingFile = response.result.files[0];
+            if (!existingFile) {
+                showToast("No backup file found in Drive", "error");
+                return;
+            }
+
+            const fileResp = await gapi.client.drive.files.get({
+                fileId: existingFile.id,
+                alt: 'media'
+            });
+
+            const importedData = fileResp.result; // gapi automatically parses JSON if content-type matches
+            // If it comes back as string, parse it. 
+            const dataToImport = typeof importedData === 'string' ? JSON.parse(importedData) : importedData;
+
+            if (!Array.isArray(dataToImport)) throw new Error("Invalid Format");
+            for (const item of dataToImport) { await updateField(item); }
+            renderFields(await getAllFields());
+            showToast("Data Restored from Drive");
+
+        } catch (err) {
+            console.error(err);
+            showToast("Restore Failed", "error");
+        } finally {
             gRestoreBtn.innerHTML = originalContent;
             gRestoreBtn.disabled = false;
-            showToast("Data synced from Drive (Simulated)");
-            // In real app, we would reload data here
-        }, 2000);
+        }
     };
 
     // --- CR-015: Settings Logic ---
@@ -627,21 +744,24 @@
     const scaleVal = document.getElementById('scale-val');
     const opacityVal = document.getElementById('opacity-val');
 
-    let currentConfig = {
-        backgroundImage: 'none',
-        backgroundScale: 100,
-        opacity: 1.0
-    };
+    let currentConfig = { backgroundImage: 'none', backgroundScale: 100, opacity: 1.0, google_config: { clientId: '', apiKey: '' } };
 
     function applyConfig(config) {
         document.body.style.setProperty('--bg-image', config.backgroundImage.startsWith('data') ? `url(${config.backgroundImage})` : config.backgroundImage);
         document.body.style.setProperty('--bg-size', `${config.backgroundScale}%`);
         document.body.style.setProperty('--main-opacity', config.opacity);
-        
         bgScale.value = config.backgroundScale;
         bgOpacity.value = config.opacity;
         scaleVal.textContent = `${config.backgroundScale}%`;
         opacityVal.textContent = `${Math.round(config.opacity * 100)}%`;
+        
+        // Restore API Keys inputs
+        if (config.google_config) {
+            googleConfig = config.google_config;
+            gClientIdInput.value = config.google_config.clientId || '';
+            gApiKeyInput.value = config.google_config.apiKey || '';
+        }
+        
         currentConfig = config;
     }
 
@@ -663,7 +783,6 @@
     const labelInput = document.getElementById('field-label');
     const valueInput = document.getElementById('field-value');
     const valueGroup = document.getElementById('value-input-group'); 
-
     let editingContext = null; 
 
     function openDialog(context) {
@@ -671,7 +790,6 @@
         labelInput.value = '';
         valueInput.value = '';
         valueGroup.style.display = 'block'; 
-
         if (context.type === 'new-wallet') {
             dialogTitle.textContent = "Create New Wallet";
             labelInput.placeholder = "Wallet Name (e.g., Trip Info)";
@@ -682,23 +800,17 @@
         } else if (context.type === 'edit-item') {
             dialogTitle.textContent = "Edit Item";
             const item = context.walletData.items.find(i => i.id === context.itemId);
-            if (item) {
-                labelInput.value = item.label;
-                valueInput.value = item.value;
-            }
+            if (item) { labelInput.value = item.label; valueInput.value = item.value; }
         }
         dialog.showModal();
     }
 
     document.getElementById('dialog-close-btn').onclick = () => dialog.close();
     document.getElementById('dialog-cancel-btn').onclick = () => dialog.close();
-
     document.getElementById('dialog-save-btn').onclick = async () => {
         const label = labelInput.value.trim();
         const value = valueInput.value.trim();
-
         if (!label) { alert("Label is required"); return; }
-
         if (editingContext.type === 'new-wallet') {
             await saveField({ type: 'wallet', label: label, icon: 'folder', items: [] });
             showToast("Wallet Created");
@@ -713,11 +825,7 @@
             if (!value) { alert("Value is required"); return; }
             const wallet = editingContext.walletData;
             const idx = wallet.items.findIndex(i => i.id === editingContext.itemId);
-            if (idx !== -1) {
-                wallet.items[idx] = { ...wallet.items[idx], label, value };
-                await updateField(wallet);
-                showToast("Item Updated");
-            }
+            if (idx !== -1) { wallet.items[idx] = { ...wallet.items[idx], label, value }; await updateField(wallet); showToast("Item Updated"); }
         }
         dialog.close();
         renderFields(await getAllFields());
@@ -728,68 +836,36 @@
     };
 
     // --- Global Event Handlers ---
-    
     document.getElementById('settings-btn').onclick = () => settingsDialog.showModal();
     document.getElementById('settings-close-btn').onclick = () => settingsDialog.close();
-
-    // Export/Import
     document.getElementById('export-btn').onclick = handleExport;
     document.getElementById('import-btn-trigger').onclick = () => document.getElementById('import-file').click();
     document.getElementById('import-file').onchange = handleImport;
-
-    // Background Image
+    
     bgUpload.onchange = (e) => {
         const file = e.target.files[0];
         if (file) {
             const reader = new FileReader();
-            reader.onload = async (evt) => {
-                currentConfig.backgroundImage = evt.target.result;
-                await updateSettings();
-            };
+            reader.onload = async (evt) => { currentConfig.backgroundImage = evt.target.result; await updateSettings(); };
             reader.readAsDataURL(file);
         }
     };
-    
-    document.getElementById('reset-bg-btn').onclick = async () => {
-        currentConfig.backgroundImage = 'none';
-        bgUpload.value = '';
-        await updateSettings();
-    };
-
-    bgScale.oninput = () => {
-        scaleVal.textContent = `${bgScale.value}%`;
-        document.body.style.setProperty('--bg-size', `${bgScale.value}%`);
-    };
+    document.getElementById('reset-bg-btn').onclick = async () => { currentConfig.backgroundImage = 'none'; bgUpload.value = ''; await updateSettings(); };
+    bgScale.oninput = () => { scaleVal.textContent = `${bgScale.value}%`; document.body.style.setProperty('--bg-size', `${bgScale.value}%`); };
     bgScale.onchange = updateSettings;
-
-    bgOpacity.oninput = () => {
-        opacityVal.textContent = `${Math.round(bgOpacity.value * 100)}%`;
-        document.body.style.setProperty('--main-opacity', bgOpacity.value);
-    };
+    bgOpacity.oninput = () => { opacityVal.textContent = `${Math.round(bgOpacity.value * 100)}%`; document.body.style.setProperty('--main-opacity', bgOpacity.value); };
     bgOpacity.onchange = updateSettings;
 
-    // Global Click
     document.addEventListener('click', async (e) => {
         const target = e.target;
-        if (!target.closest('.wallet-card') && !target.closest('dialog') && !target.closest('#settings-btn')) {
-            document.querySelectorAll('.wallet-card.expanded').forEach(card => card.classList.remove('expanded'));
-        }
-
-        if (target.closest('#add-wallet-btn-top') || target.closest('#add-wallet-btn-bottom')) {
-            openDialog({ type: 'new-wallet' });
-            return;
-        }
-
+        if (!target.closest('.wallet-card') && !target.closest('dialog') && !target.closest('#settings-btn')) { document.querySelectorAll('.wallet-card.expanded').forEach(card => card.classList.remove('expanded')); }
+        if (target.closest('#add-wallet-btn-top') || target.closest('#add-wallet-btn-bottom')) { openDialog({ type: 'new-wallet' }); return; }
         const walletHeader = target.closest('.wallet-header');
         if (walletHeader) {
             const walletCard = walletHeader.closest('.wallet-card');
             if (target.closest('.delete-wallet-btn')) {
                 e.stopPropagation();
-                if (confirm('Delete this entire wallet?')) {
-                    await deleteField(parseInt(walletCard.dataset.id));
-                    renderFields(await getAllFields());
-                    showToast("Wallet Deleted");
-                }
+                if (confirm('Delete this entire wallet?')) { await deleteField(parseInt(walletCard.dataset.id)); renderFields(await getAllFields()); showToast("Wallet Deleted"); }
                 return;
             }
             const wasExpanded = walletCard.classList.contains('expanded');
@@ -797,7 +873,6 @@
             if (!wasExpanded) walletCard.classList.add('expanded');
             return;
         }
-
         const addItemBtn = target.closest('.add-item-btn');
         if (addItemBtn) {
             const walletCard = addItemBtn.closest('.wallet-card');
@@ -805,12 +880,9 @@
             openDialog({ type: 'add-item', walletId: walletData.id, walletData });
             return;
         }
-
         const copyZone = target.closest('.copy-zone');
         if (copyZone) {
-            e.stopPropagation();
-            navigator.clipboard.writeText(copyZone.dataset.copyValue).then(() => showToast("Copied!"));
-            return;
+            e.stopPropagation(); navigator.clipboard.writeText(copyZone.dataset.copyValue).then(() => showToast("Copied!")); return;
         }
         const editZone = target.closest('.edit-zone');
         if (editZone) {
@@ -824,19 +896,11 @@
     });
 
     document.getElementById('paste-btn').onclick = async () => {
-        try {
-            const text = await navigator.clipboard.readText();
-            valueInput.value = text;
-            showToast("Pasted");
-        } catch (e) { alert("Paste failed"); }
+        try { const text = await navigator.clipboard.readText(); valueInput.value = text; showToast("Pasted"); } catch (e) { alert("Paste failed"); }
     };
 
     window.onload = async () => {
-        try {
-            await initDB();
-            renderFields(await getAllFields());
-            await initSettings();
-        } catch (e) { console.error(e); }
+        try { await initDB(); renderFields(await getAllFields()); await initSettings(); } catch (e) { console.error(e); }
     };
 
 </script>
