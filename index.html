@@ -132,6 +132,17 @@
         background: #e2e8f0;
         border-radius: 2px;
     }
+
+    /* Loading Spinner for Google Drive */
+    .spinner {
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-left-color: #ffffff;
+        border-radius: 50%;
+        width: 16px;
+        height: 16px;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 </style>
 </head>
 <body class="bg-background-light font-display text-slate-800 min-h-screen flex flex-col items-center justify-center p-4 sm:p-8 transition-colors duration-200">
@@ -204,7 +215,7 @@
     </div>
 </dialog>
 
-<!-- CR-014/015: Settings Dialog -->
+<!-- CR-014/015/016/017: Settings Dialog -->
 <dialog id="settings-dialog" class="rounded-xl shadow-2xl p-0 w-full max-w-md bg-white overflow-hidden">
     <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
         <h3 class="font-semibold text-slate-800">Settings</h3>
@@ -212,20 +223,55 @@
             <span class="material-symbols-outlined">close</span>
         </button>
     </div>
-    <div class="p-6 space-y-6">
-        <!-- Data Management -->
+    <div class="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
+        <!-- Local Backup (Updated for iOS Share) -->
         <div>
-            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Data Management</h4>
+            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Local Device</h4>
             <div class="grid grid-cols-2 gap-3">
                 <button id="export-btn" class="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-slate-200 hover:border-primary hover:bg-blue-50 text-slate-700 hover:text-primary transition-all">
-                    <span class="material-symbols-outlined text-[20px]">download</span>
-                    <span class="text-sm font-medium">Backup Data</span>
+                    <span class="material-symbols-outlined text-[20px]">ios_share</span>
+                    <span class="text-sm font-medium">Backup / Share</span>
                 </button>
                 <button id="import-btn-trigger" class="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-slate-200 hover:border-primary hover:bg-blue-50 text-slate-700 hover:text-primary transition-all">
-                    <span class="material-symbols-outlined text-[20px]">upload</span>
-                    <span class="text-sm font-medium">Restore Data</span>
+                    <span class="material-symbols-outlined text-[20px]">upload_file</span>
+                    <span class="text-sm font-medium">Restore File</span>
                 </button>
                 <input type="file" id="import-file" class="hidden" accept=".json">
+            </div>
+            <p class="text-[10px] text-slate-400 mt-2">
+                On iPhone, click <b>Backup</b> then choose <b>"Save to Files"</b> to store safely.
+            </p>
+        </div>
+
+        <!-- Cloud Backup (Google Drive Mock) -->
+        <div class="border-t border-slate-100 pt-6">
+            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Cloud Storage (Google Drive)</h4>
+            
+            <!-- Not Connected State -->
+            <div id="gdrive-connect-view">
+                <button id="gdrive-connect-btn" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium transition-all shadow-sm">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" class="w-5 h-5" alt="Drive">
+                    Connect Google Drive
+                </button>
+            </div>
+
+            <!-- Connected State (Hidden by default) -->
+            <div id="gdrive-actions-view" class="hidden space-y-3">
+                <div class="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-2 rounded-lg text-xs">
+                    <span class="material-symbols-outlined text-[16px]">check_circle</span>
+                    Connected to Google Drive
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="gdrive-backup-btn" class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-primary text-white hover:bg-primary-hover transition-all text-sm font-medium">
+                        <span class="material-symbols-outlined text-[18px]">cloud_upload</span>
+                        Backup Now
+                    </button>
+                    <button id="gdrive-restore-btn" class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all text-sm font-medium">
+                        <span class="material-symbols-outlined text-[18px]">cloud_download</span>
+                        Restore
+                    </button>
+                </div>
+                <p id="gdrive-status-text" class="text-[10px] text-slate-400 text-center">Last backup: Never</p>
             </div>
         </div>
         
@@ -391,13 +437,13 @@
     }
 
     // --- Helper: Toast ---
-    function showToast(message) {
+    function showToast(message, duration = 2000) {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
         toast.className = 'toast-message bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2';
         toast.innerHTML = `<span class="material-symbols-outlined text-[18px] text-green-400">check_circle</span> ${message}`;
         container.appendChild(toast);
-        setTimeout(() => toast.remove(), 2000);
+        setTimeout(() => toast.remove(), duration);
     }
 
     // --- CR-012: Rendering Logic ---
@@ -468,15 +514,34 @@
         });
     }
 
-    // --- CR-014: Import / Export Logic ---
+    // --- CR-017: Smart Local Backup (iOS Share API) ---
     async function handleExport() {
         const fields = await getAllFields();
         const dataStr = JSON.stringify(fields, null, 2);
+        const fileName = `data-entry-backup-${new Date().toISOString().slice(0,10)}.json`;
+        
+        // CR-017: Try Native Share First (Best for iOS)
+        if (navigator.canShare && navigator.canShare({ files: [new File([dataStr], fileName, { type: "application/json" })] })) {
+            try {
+                const file = new File([dataStr], fileName, { type: "application/json" });
+                await navigator.share({
+                    files: [file],
+                    title: 'Data Entry Backup',
+                    text: 'Backup file from Data Entry App'
+                });
+                return; // Success, stop here
+            } catch (err) {
+                if (err.name !== 'AbortError') console.error(err);
+                // If share fails, fall back to simple download
+            }
+        }
+
+        // Fallback for Desktop/Non-Share Browsers
         const blob = new Blob([dataStr], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `data-entry-backup-${Date.now()}.json`;
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -493,12 +558,9 @@
             try {
                 const importedData = JSON.parse(e.target.result);
                 if (!Array.isArray(importedData)) throw new Error("Invalid Format");
-                
-                // Merge Logic: Put each item
                 for (const item of importedData) {
-                    await updateField(item); // updateField uses .put, works for new or existing
+                    await updateField(item);
                 }
-                
                 renderFields(await getAllFields());
                 showToast("Data Restored Successfully");
             } catch (err) {
@@ -508,6 +570,54 @@
         };
         reader.readAsText(file);
     }
+
+    // --- CR-016: Google Drive Mock Logic ---
+    const gConnectBtn = document.getElementById('gdrive-connect-btn');
+    const gConnectView = document.getElementById('gdrive-connect-view');
+    const gActionsView = document.getElementById('gdrive-actions-view');
+    const gBackupBtn = document.getElementById('gdrive-backup-btn');
+    const gRestoreBtn = document.getElementById('gdrive-restore-btn');
+    const gStatusText = document.getElementById('gdrive-status-text');
+
+    // Simulate Connection
+    gConnectBtn.onclick = () => {
+        const originalText = gConnectBtn.innerHTML;
+        gConnectBtn.innerHTML = '<div class="spinner"></div> Connecting...';
+        setTimeout(() => {
+            gConnectView.classList.add('hidden');
+            gActionsView.classList.remove('hidden');
+            showToast("Connected to Google Drive");
+        }, 1500);
+    };
+
+    // Simulate Backup
+    gBackupBtn.onclick = async () => {
+        const originalContent = gBackupBtn.innerHTML;
+        gBackupBtn.innerHTML = '<div class="spinner"></div> Uploading...';
+        gBackupBtn.disabled = true;
+        
+        // Mock delay
+        setTimeout(() => {
+            gBackupBtn.innerHTML = originalContent;
+            gBackupBtn.disabled = false;
+            gStatusText.textContent = `Last backup: ${new Date().toLocaleTimeString()}`;
+            showToast("Backup saved to Drive (Simulated)");
+        }, 2000);
+    };
+
+    // Simulate Restore
+    gRestoreBtn.onclick = async () => {
+        const originalContent = gRestoreBtn.innerHTML;
+        gRestoreBtn.innerHTML = '<div class="spinner"></div> Checking...';
+        gRestoreBtn.disabled = true;
+        
+        setTimeout(() => {
+            gRestoreBtn.innerHTML = originalContent;
+            gRestoreBtn.disabled = false;
+            showToast("Data synced from Drive (Simulated)");
+            // In real app, we would reload data here
+        }, 2000);
+    };
 
     // --- CR-015: Settings Logic ---
     const settingsDialog = document.getElementById('settings-dialog');
@@ -528,12 +638,10 @@
         document.body.style.setProperty('--bg-size', `${config.backgroundScale}%`);
         document.body.style.setProperty('--main-opacity', config.opacity);
         
-        // Update Inputs
         bgScale.value = config.backgroundScale;
         bgOpacity.value = config.opacity;
         scaleVal.textContent = `${config.backgroundScale}%`;
         opacityVal.textContent = `${Math.round(config.opacity * 100)}%`;
-        
         currentConfig = config;
     }
 
@@ -543,11 +651,8 @@
     }
 
     async function updateSettings() {
-        // Collect current values
         currentConfig.backgroundScale = bgScale.value;
         currentConfig.opacity = bgOpacity.value;
-        // Image handled separately via upload
-        
         applyConfig(currentConfig);
         await saveSettings(currentConfig);
     }
@@ -624,7 +729,6 @@
 
     // --- Global Event Handlers ---
     
-    // Settings Button
     document.getElementById('settings-btn').onclick = () => settingsDialog.showModal();
     document.getElementById('settings-close-btn').onclick = () => settingsDialog.close();
 
@@ -648,16 +752,15 @@
     
     document.getElementById('reset-bg-btn').onclick = async () => {
         currentConfig.backgroundImage = 'none';
-        bgUpload.value = ''; // Reset file input
+        bgUpload.value = '';
         await updateSettings();
     };
 
-    // Sliders (Live Update)
     bgScale.oninput = () => {
         scaleVal.textContent = `${bgScale.value}%`;
         document.body.style.setProperty('--bg-size', `${bgScale.value}%`);
     };
-    bgScale.onchange = updateSettings; // Save on release
+    bgScale.onchange = updateSettings;
 
     bgOpacity.oninput = () => {
         opacityVal.textContent = `${Math.round(bgOpacity.value * 100)}%`;
@@ -665,21 +768,18 @@
     };
     bgOpacity.onchange = updateSettings;
 
-    // Global Click (Delegation & Auto-Collapse)
+    // Global Click
     document.addEventListener('click', async (e) => {
         const target = e.target;
-        // Auto-Collapse
         if (!target.closest('.wallet-card') && !target.closest('dialog') && !target.closest('#settings-btn')) {
             document.querySelectorAll('.wallet-card.expanded').forEach(card => card.classList.remove('expanded'));
         }
 
-        // Add Wallet
         if (target.closest('#add-wallet-btn-top') || target.closest('#add-wallet-btn-bottom')) {
             openDialog({ type: 'new-wallet' });
             return;
         }
 
-        // Wallet Header
         const walletHeader = target.closest('.wallet-header');
         if (walletHeader) {
             const walletCard = walletHeader.closest('.wallet-card');
@@ -698,7 +798,6 @@
             return;
         }
 
-        // Add Item
         const addItemBtn = target.closest('.add-item-btn');
         if (addItemBtn) {
             const walletCard = addItemBtn.closest('.wallet-card');
@@ -707,7 +806,6 @@
             return;
         }
 
-        // Copy / Edit Zones
         const copyZone = target.closest('.copy-zone');
         if (copyZone) {
             e.stopPropagation();
@@ -733,15 +831,16 @@
         } catch (e) { alert("Paste failed"); }
     };
 
-    // Init
     window.onload = async () => {
         try {
             await initDB();
             renderFields(await getAllFields());
-            await initSettings(); // CR-015: Load User Settings
+            await initSettings();
         } catch (e) { console.error(e); }
     };
 
 </script>
 </body>
 </html>
+
+
