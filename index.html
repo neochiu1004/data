@@ -17,8 +17,6 @@
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <!-- CR-019: SortableJS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-<!-- CR-022: JSRSASIGN for JWT Signing -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.9.0/jsrsasign-all-min.js"></script>
 
 <script id="tailwind-config">
     tailwind.config = {
@@ -138,16 +136,6 @@
         border-radius: 2px;
     }
 
-    /* CR-019: Sortable Ghost Class */
-    .sortable-ghost {
-        opacity: 0.4;
-        background: #f1f5f9;
-    }
-    .wallet-drag-handle, .item-drag-handle {
-        cursor: grab;
-        touch-action: none; /* Important for mobile drag */
-    }
-    
     /* CR-021: Spinner */
     .spinner {
         border: 2px solid rgba(255, 255, 255, 0.3);
@@ -158,6 +146,16 @@
         animation: spin 1s linear infinite;
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* CR-019: Sortable Ghost Class */
+    .sortable-ghost {
+        opacity: 0.4;
+        background: #f1f5f9;
+    }
+    .wallet-drag-handle, .item-drag-handle {
+        cursor: grab;
+        touch-action: none; /* Important for mobile drag */
+    }
 </style>
 </head>
 <body class="bg-background-light font-display text-slate-800 min-h-screen flex flex-col items-center justify-center p-4 sm:p-8 transition-colors duration-200">
@@ -239,8 +237,40 @@
         </button>
     </div>
     <div class="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
-        <!-- Local & iCloud Backup -->
+        
+        <!-- Section 1: Cloud Backup (GAS Bridge) -->
         <div>
+            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Cloud Backup (GAS Bridge)</h4>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-[10px] text-slate-500 uppercase font-bold mb-1">Google Apps Script URL</label>
+                    <input type="text" id="gas-url" class="w-full rounded text-xs border-slate-300 bg-white" placeholder="https://script.google.com/macros/s/.../exec">
+                </div>
+                <!-- Custom Path Inputs -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] text-slate-500 uppercase font-bold mb-1">Target Folder</label>
+                        <input type="text" id="gas-folder-name" class="w-full rounded text-xs border-slate-300 bg-white" placeholder="e.g. MyBackups" value="DataEntryBackups">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-500 uppercase font-bold mb-1">Filename</label>
+                        <input type="text" id="gas-file-name" class="w-full rounded text-xs border-slate-300 bg-white" placeholder="e.g. backup.json" value="data-entry-backup.json">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="gas-backup-btn" class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-primary text-white hover:bg-primary-hover transition-all text-sm font-medium shadow-md">
+                        <span class="material-symbols-outlined text-[18px]">cloud_upload</span>Backup
+                    </button>
+                    <button id="gas-restore-btn" class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all text-sm font-medium">
+                        <span class="material-symbols-outlined text-[18px]">cloud_download</span>Restore
+                    </button>
+                </div>
+                <p class="text-[10px] text-slate-400 italic mt-1">No keys needed. Uses a private script to talk to your Drive.</p>
+            </div>
+        </div>
+
+        <!-- Section 2: Local & iCloud Backup (Retained) -->
+        <div class="border-t border-slate-100 pt-6">
             <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Local Device</h4>
             <div class="grid grid-cols-2 gap-3">
                 <button id="icloud-backup-btn" class="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-slate-200 hover:border-primary hover:bg-blue-50 text-slate-700 hover:text-primary transition-all">
@@ -257,52 +287,8 @@
                 On iPhone, click <b>Backup</b> then choose <b>"Save to Files"</b>.
             </p>
         </div>
-
-        <!-- Cloud Storage (Service Account) -->
-        <div class="border-t border-slate-100 pt-6">
-            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Google Drive (Service Account)</h4>
-            
-            <!-- CR-022: Service Key Upload -->
-            <div class="mb-4 bg-orange-50 border border-orange-200 rounded-lg p-3">
-                <p class="text-[10px] text-orange-800 font-bold mb-1 flex items-center gap-1">
-                    <span class="material-symbols-outlined text-[14px]">warning</span>
-                    SECURITY WARNING
-                </p>
-                <p class="text-[10px] text-orange-700 leading-tight">
-                    This method exposes your Service Account Private Key to this browser. Use only on trusted, personal devices.
-                </p>
-                <div class="mt-3">
-                    <label class="block text-[10px] text-slate-500 uppercase tracking-wide mb-1">Upload Key JSON</label>
-                    <input type="file" id="sa-key-upload" class="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-orange-100 file:text-orange-700 hover:file:bg-orange-200" accept=".json">
-                    <p id="sa-status" class="text-[10px] text-slate-400 mt-1 italic">No key loaded</p>
-                </div>
-            </div>
-
-            <!-- CR-023: Custom Path Inputs -->
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                    <label class="block text-[10px] text-slate-500 uppercase tracking-wide mb-1">Target Folder</label>
-                    <input type="text" id="sa-folder-name" class="w-full rounded text-xs border-slate-300 bg-white" placeholder="Root (Default)" value="DataEntryBackups">
-                </div>
-                <div>
-                    <label class="block text-[10px] text-slate-500 uppercase tracking-wide mb-1">Filename</label>
-                    <input type="text" id="sa-file-name" class="w-full rounded text-xs border-slate-300 bg-white" placeholder="backup.json" value="data-entry-backup.json">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <button id="sa-backup-btn" class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-primary text-white hover:bg-primary-hover transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">
-                    <span class="material-symbols-outlined text-[18px]">cloud_upload</span>
-                    Backup
-                </button>
-                <button id="sa-restore-btn" class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">
-                    <span class="material-symbols-outlined text-[18px]">cloud_download</span>
-                    Restore
-                </button>
-            </div>
-        </div>
         
-        <!-- Appearance Settings -->
+        <!-- Section 3: Appearance Settings (Retained) -->
         <div class="border-t border-slate-100 pt-6">
             <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Appearance</h4>
             <div class="space-y-4">
@@ -340,32 +326,10 @@
 <div id="toast-container" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none"></div>
 
 <script>
-    // --- CR-002: Service Worker (Unchanged) ---
-    const swCode = `
-        const CACHE_NAME = 'legacy-v1';
-        const URLS_TO_CACHE = [
-            'https://cdn.tailwindcss.com?plugins=forms,container-queries',
-            'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
-            'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap'
-        ];
-        self.addEventListener('install', event => {
-            event.waitUntil(caches.open(CACHE_NAME).then(cache => Promise.all(URLS_TO_CACHE.map(url => fetch(url, { mode: 'no-cors' }).then(r => cache.put(url, r)).catch(e => console.warn(url))))));
-        });
-        self.addEventListener('fetch', event => event.respondWith(caches.match(event.request).then(r => r || fetch(event.request))));
-    `;
-    if ('serviceWorker' in navigator) {
-        try { navigator.serviceWorker.register(URL.createObjectURL(new Blob([swCode], { type: 'application/javascript' }))); } catch (e) {}
-    }
-
-    // --- CR-003 / CR-014 / CR-015: IndexedDB Data Layer ---
+    // --- DB & Init ---
     const DB_NAME = 'LegacyDataDB';
     const DB_VERSION = 2;
     let db;
-
-    const SEED_DATA = [
-        { type: 'wallet', icon: 'folder', label: 'Project Info', order: 0, items: [{ id: 1, label: 'Project Name', value: 'Q4 Marketing Initiative' }, { id: 2, label: 'Budget', value: '$45,000.00' }] },
-        { type: 'wallet', icon: 'person', label: 'Passport Details', order: 1, items: [{ id: 1, label: 'Passport No.', value: 'A123456789' }, { id: 2, label: 'Full Name', value: 'John Doe' }, { id: 3, label: 'Expiry Date', value: '2030-12-31' }] }
-    ];
 
     function initDB() {
         return new Promise((resolve, reject) => {
@@ -375,16 +339,12 @@
                 const db = event.target.result;
                 if (!db.objectStoreNames.contains('fields')) {
                     const store = db.createObjectStore('fields', { keyPath: 'id', autoIncrement: true });
-                    SEED_DATA.forEach(item => store.add(item));
                 }
                 if (!db.objectStoreNames.contains('settings')) {
                     db.createObjectStore('settings', { keyPath: 'key' });
                 }
             };
-            request.onsuccess = event => {
-                db = event.target.result;
-                resolve(db);
-            };
+            request.onsuccess = event => { db = event.target.result; resolve(db); };
         });
     }
 
@@ -395,11 +355,7 @@
             const request = store.getAll();
             request.onsuccess = () => {
                 const results = request.result;
-                results.sort((a, b) => {
-                    if (a.order === undefined) a.order = 0;
-                    if (b.order === undefined) b.order = 0;
-                    return a.order - b.order;
-                });
+                results.sort((a, b) => (a.order || 0) - (b.order || 0));
                 resolve(results);
             };
         });
@@ -409,364 +365,165 @@
         const fields = await getAllFields();
         data.order = fields.length;
         const transaction = db.transaction(['fields'], 'readwrite');
-        const store = transaction.objectStore('fields');
-        store.add(data);
-        return new Promise((resolve) => { transaction.oncomplete = () => resolve(); });
+        transaction.objectStore('fields').add(data);
+        return new Promise(r => transaction.oncomplete = r);
     }
 
     async function updateField(data) {
         const transaction = db.transaction(['fields'], 'readwrite');
-        const store = transaction.objectStore('fields');
-        store.put(data);
-        return new Promise((resolve) => { transaction.oncomplete = () => resolve(); });
+        transaction.objectStore('fields').put(data);
+        return new Promise(r => transaction.oncomplete = r);
     }
 
     async function updateAllFields(fields) {
         const transaction = db.transaction(['fields'], 'readwrite');
         const store = transaction.objectStore('fields');
         fields.forEach(f => store.put(f));
-        return new Promise((resolve) => { transaction.oncomplete = () => resolve(); });
+        return new Promise(r => transaction.oncomplete = r);
     }
 
     async function deleteField(id) {
         const transaction = db.transaction(['fields'], 'readwrite');
-        const store = transaction.objectStore('fields');
-        store.delete(id);
-        return new Promise((resolve) => { transaction.oncomplete = () => resolve(); });
+        transaction.objectStore('fields').delete(id);
+        return new Promise(r => transaction.oncomplete = r);
     }
 
-    // --- CR-015: Settings API ---
     async function getSettings() {
         return new Promise((resolve) => {
             const transaction = db.transaction(['settings'], 'readonly');
-            const store = transaction.objectStore('settings');
-            const request = store.get('app_config');
+            const request = transaction.objectStore('settings').get('app_config');
             request.onsuccess = () => resolve(request.result ? request.result.value : null);
-            request.onerror = () => resolve(null);
         });
     }
 
     async function saveSettings(config) {
         const transaction = db.transaction(['settings'], 'readwrite');
-        const store = transaction.objectStore('settings');
-        store.put({ key: 'app_config', value: config });
-        return new Promise((resolve) => { transaction.oncomplete = () => resolve(); });
+        transaction.objectStore('settings').put({ key: 'app_config', value: config });
+        return new Promise(r => transaction.oncomplete = r);
     }
 
-    // --- Helper: Toast ---
     function showToast(message, duration = 3000) {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
-        toast.className = 'toast-message bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2';
+        toast.className = 'toast-message bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2 mb-2';
         toast.innerHTML = `<span class="material-symbols-outlined text-[18px] text-green-400">check_circle</span> ${message}`;
         container.appendChild(toast);
         setTimeout(() => toast.remove(), duration);
     }
 
-    // --- CR-022: Service Account JWT Logic ---
-    let saKey = null;
+    // --- Google Apps Script Backup Logic ---
+    async function handleGasBackup() {
+        const url = document.getElementById('gas-url').value.trim();
+        const folderName = document.getElementById('gas-folder-name').value.trim() || "DataEntryBackups";
+        const fileName = document.getElementById('gas-file-name').value.trim() || "data-entry-backup.json";
 
-    async function getSaToken() {
-        if (!saKey) throw new Error("No Service Key Loaded");
+        if (!url) return alert("Please enter GAS URL in Settings.");
         
-        const now = Math.floor(Date.now() / 1000);
-        const header = { alg: "RS256", typ: "JWT" };
-        const claim = {
-            iss: saKey.client_email,
-            scope: "https://www.googleapis.com/auth/drive.file",
-            aud: "https://oauth2.googleapis.com/token",
-            exp: now + 3600,
-            iat: now
-        };
-
-        const sHeader = JSON.stringify(header);
-        const sClaim = JSON.stringify(claim);
-        const sKey = saKey.private_key;
-        
-        // Sign JWT
-        const sJWS = KJUR.jws.JWS.sign(null, sHeader, sClaim, sKey);
-        
-        // Exchange for Access Token
-        const response = await fetch('https://oauth2.googleapis.com/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${sJWS}`
-        });
-        
-        if (!response.ok) throw new Error("Token Exchange Failed");
-        const data = await response.json();
-        return data.access_token;
-    }
-
-    // Load Key File
-    document.getElementById('sa-key-upload').onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (evt) => {
-            try {
-                const json = JSON.parse(evt.target.result);
-                if (!json.private_key || !json.client_email) throw new Error("Invalid Key File");
-                saKey = json;
-                
-                // Save to Settings
-                let settings = await getSettings() || {};
-                if (!settings.googleConfig) settings.googleConfig = {};
-                settings.googleConfig.saKey = json;
-                await saveSettings(settings);
-                
-                document.getElementById('sa-status').textContent = `Loaded: ${json.client_email}`;
-                document.getElementById('sa-status').className = "text-[10px] text-green-600 mt-1 font-medium";
-                showToast("Service Key Loaded");
-            } catch (err) {
-                alert("Invalid Key: " + err.message);
-            }
-        };
-        reader.readAsText(file);
-    };
-
-    // Helper: Drive API Call
-    async function driveApi(method, endpoint, body = null, token) {
-        const headers = {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        };
-        const opts = { method, headers };
-        if (body) opts.body = JSON.stringify(body);
-        
-        const res = await fetch(`https://www.googleapis.com/drive/v3/files${endpoint}`, opts);
-        if (!res.ok) throw new Error(`API Error: ${res.status}`);
-        return res.json();
-    }
-
-    // CR-023: Helper to Find or Create Folder
-    async function ensureFolder(name, token) {
-        if (!name) return null; // Use root
-        
-        // 1. Search for folder
-        const query = `mimeType = 'application/vnd.google-apps.folder' and name = '${name}' and trashed = false`;
-        const searchRes = await driveApi('GET', `?q=${encodeURIComponent(query)}`, null, token);
-        
-        if (searchRes.files && searchRes.files.length > 0) {
-            return searchRes.files[0].id;
-        }
-        
-        // 2. Create if not found
-        const folderMetadata = {
-            name: name,
-            mimeType: 'application/vnd.google-apps.folder'
-        };
-        
-        const createRes = await driveApi('POST', '', folderMetadata, token);
-        return createRes.id;
-    }
-
-    // SA Backup
-    document.getElementById('sa-backup-btn').onclick = async () => {
-        const btn = document.getElementById('sa-backup-btn');
+        const btn = document.getElementById('gas-backup-btn');
+        const originalContent = btn.innerHTML;
         btn.innerHTML = '<div class="spinner"></div> Uploading...';
         btn.disabled = true;
 
         try {
-            const token = await getSaToken();
-            
-            // CR-023: Get Inputs
-            const folderName = document.getElementById('sa-folder-name').value.trim();
-            const fileName = document.getElementById('sa-file-name').value.trim() || 'data-entry-backup.json';
-            
-            // CR-023: Save Settings
-            let settings = await getSettings() || {};
-            if(!settings.googleConfig) settings.googleConfig = {};
-            settings.googleConfig.folderName = folderName;
-            settings.googleConfig.fileName = fileName;
-            await saveSettings(settings);
-
-            // 1. Ensure Folder exists
-            const folderId = await ensureFolder(folderName, token);
-            
-            // 2. Search for existing file IN that folder (or root)
-            let query = `name = '${fileName}' and trashed = false`;
-            if (folderId) {
-                query += ` and '${folderId}' in parents`;
-            }
-            
-            const searchRes = await driveApi('GET', `?q=${encodeURIComponent(query)}`, null, token);
-            const files = searchRes.files;
-            
             const fields = await getAllFields();
-            const content = JSON.stringify(fields, null, 2);
-            
-            // Multipart Upload (Custom for Fetch)
-            const metadata = { name: fileName, mimeType: 'application/json' };
-            if (folderId) metadata.parents = [folderId]; // Set parent for creation
-
-            const boundary = '-------314159265358979323846';
-            const delimiter = "\r\n--" + boundary + "\r\n";
-            const close_delim = "\r\n--" + boundary + "--";
-            
-            const multipartBody =
-                delimiter +
-                'Content-Type: application/json\r\n\r\n' +
-                JSON.stringify(metadata) +
-                delimiter +
-                'Content-Type: application/json\r\n\r\n' +
-                content +
-                close_delim;
-                
-            const uploadHeaders = {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': `multipart/related; boundary="${boundary}"`
+            const payload = {
+                folder: folderName,
+                filename: fileName,
+                content: fields
             };
+            
+            // Save Settings
+            let s = await getSettings() || {};
+            s.gasUrl = url;
+            s.gasFolder = folderName;
+            s.gasFile = fileName;
+            await saveSettings(s);
 
-            let uploadUrl;
-            let method;
+            await fetch(url, {
+                method: 'POST',
+                mode: 'no-cors', 
+                body: JSON.stringify(payload)
+            });
 
-            if (files && files.length > 0) {
-                // Update
-                uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${files[0].id}?uploadType=multipart`;
-                method = 'PATCH';
-                // Note: Updating file does not require sending metadata again unless changing name/parent, 
-                // but standard multipart PATCH works fine.
-            } else {
-                // Create
-                uploadUrl = `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
-                method = 'POST';
-            }
-
-            await fetch(uploadUrl, { method, headers: uploadHeaders, body: multipartBody });
-            showToast(`Backup Saved to ${folderName || 'Root'}`);
-
+            showToast("Backup Signal Sent");
         } catch (err) {
-            console.error(err);
             alert("Backup Failed: " + err.message);
         } finally {
-            btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">cloud_upload</span> Backup';
+            btn.innerHTML = originalContent;
             btn.disabled = false;
         }
-    };
+    }
 
-    // SA Restore
-    document.getElementById('sa-restore-btn').onclick = async () => {
-        const btn = document.getElementById('sa-restore-btn');
-        btn.innerHTML = '<div class="spinner"></div> Downloading...';
+    async function handleGasRestore() {
+        const url = document.getElementById('gas-url').value.trim();
+        const folderName = document.getElementById('gas-folder-name').value.trim() || "DataEntryBackups";
+        const fileName = document.getElementById('gas-file-name').value.trim() || "data-entry-backup.json";
+
+        if (!url) return alert("Please enter GAS URL in Settings.");
+        
+        const btn = document.getElementById('gas-restore-btn');
+        btn.innerHTML = '<div class="spinner"></div> Loading...';
         btn.disabled = true;
 
         try {
-            const token = await getSaToken();
-            const folderName = document.getElementById('sa-folder-name').value.trim();
-            const fileName = document.getElementById('sa-file-name').value.trim() || 'data-entry-backup.json';
+            const fullUrl = `${url}?folder=${encodeURIComponent(folderName)}&filename=${encodeURIComponent(fileName)}`;
+            const res = await fetch(fullUrl);
+            if (!res.ok) throw new Error("File not found or Script error");
+            const data = await res.json();
             
-            // 1. Find folder ID (if specified)
-            let folderId = null;
-            if (folderName) {
-                const fQuery = `mimeType = 'application/vnd.google-apps.folder' and name = '${folderName}' and trashed = false`;
-                const fRes = await driveApi('GET', `?q=${encodeURIComponent(fQuery)}`, null, token);
-                if (fRes.files && fRes.files.length > 0) {
-                    folderId = fRes.files[0].id;
-                } else {
-                    throw new Error(`Folder '${folderName}' not found.`);
-                }
-            }
-
-            // 2. Find file
-            let query = `name = '${fileName}' and trashed = false`;
-            if (folderId) {
-                query += ` and '${folderId}' in parents`;
-            }
-            
-            const searchRes = await driveApi('GET', `?q=${encodeURIComponent(query)}`, null, token);
-            const files = searchRes.files;
-            
-            if (files && files.length > 0) {
-                const res = await fetch(`https://www.googleapis.com/drive/v3/files/${files[0].id}?alt=media`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await res.json();
-                if (Array.isArray(data)) {
-                    for (const item of data) await updateField(item);
-                    renderFields(await getAllFields());
-                    showToast("Restored from Cloud");
-                }
-            } else {
-                alert(`File '${fileName}' not found in ${folderName || 'root'}.`);
+            if (Array.isArray(data)) {
+                for (const item of data) await updateField(item);
+                renderFields(await getAllFields());
+                showToast("Data Restored Successfully");
             }
         } catch (err) {
-            console.error(err);
-            alert("Restore Failed: " + err.message);
+            alert("Restore Error: " + err.message);
         } finally {
-            btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">cloud_download</span> Restore';
+            btn.innerHTML = originalContent;
             btn.disabled = false;
         }
-    };
+    }
 
-    // --- CR-012/019: Rendering Logic ---
+    // --- UI Rendering ---
     function renderFields(fields) {
         const container = document.getElementById('fields-container');
-        container.innerHTML = '';
-
-        if (fields.length === 0) {
-             container.innerHTML = `
-                <div class="h-64 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-center p-8">
-                    <h4 class="text-lg font-semibold text-slate-900 mb-2">No Wallets</h4>
-                </div>`;
-             return;
-        }
+        container.innerHTML = fields.length === 0 ? `<div class="h-64 border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-slate-400">Empty</div>` : '';
 
         fields.forEach(wallet => {
-            const items = wallet.items || (wallet.value ? [{ id: Date.now(), label: 'Value', value: wallet.value }] : []);
-            const itemCount = items.length;
-            const walletJson = encodeURIComponent(JSON.stringify(wallet));
-
+            const items = wallet.items || [];
             const walletHtml = `
-            <div class="wallet-card group bg-white border border-slate-200 rounded-xl overflow-hidden transition-all duration-300 hover:shadow-md mb-4" data-id="${wallet.id}" data-wallet-json="${walletJson}">
-                <!-- Header -->
+            <div class="wallet-card group bg-white border border-slate-200 rounded-xl overflow-hidden transition-all duration-300 hover:shadow-md mb-4" data-id="${wallet.id}" data-wallet-json="${encodeURIComponent(JSON.stringify(wallet))}">
                 <div class="wallet-header flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 select-none">
                     <div class="flex items-center gap-3">
-                        <div class="wallet-drag-handle text-slate-300 hover:text-slate-500 cursor-grab px-1">
-                            <span class="material-symbols-outlined text-[20px]">drag_indicator</span>
-                        </div>
-                        <div class="w-10 h-10 rounded-lg bg-blue-50 text-primary flex items-center justify-center">
-                            <span class="material-symbols-outlined">${wallet.icon || 'folder'}</span>
-                        </div>
+                        <div class="wallet-drag-handle text-slate-300 hover:text-slate-500 cursor-grab px-1"><span class="material-symbols-outlined text-[20px]">drag_indicator</span></div>
+                        <div class="w-10 h-10 rounded-lg bg-blue-50 text-primary flex items-center justify-center"><span class="material-symbols-outlined">${wallet.icon || 'folder'}</span></div>
                         <div>
-                            <h4 class="font-bold text-slate-700 text-sm uppercase tracking-wide">${wallet.label}</h4>
-                            <p class="text-xs text-slate-400 mt-0.5">${itemCount} Items</p>
+                            <h4 class="font-bold text-slate-700 text-sm uppercase">${wallet.label}</h4>
+                            <p class="text-xs text-slate-400">${items.length} Items</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button class="action-btn delete-wallet-btn p-2 rounded-full text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors" title="Delete Wallet">
-                            <span class="material-symbols-outlined text-[20px]">delete</span>
-                        </button>
+                        <button class="action-btn delete-wallet-btn p-2 rounded-full text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"><span class="material-symbols-outlined text-[20px]">delete</span></button>
                         <span class="material-symbols-outlined text-slate-400 chevron-icon">expand_more</span>
                     </div>
                 </div>
-
-                <!-- Content -->
                 <div class="wallet-content bg-slate-50 border-t border-slate-100">
                     <div class="p-3 space-y-2 item-list-container" data-wallet-id="${wallet.id}">
-                        ${items.map(item => {
-                            const escapedValue = String(item.value).replace(/"/g, '&quot;');
-                            return `
+                        ${items.map(item => `
                             <div class="item-card bg-white rounded-lg border border-slate-200 shadow-sm flex overflow-hidden select-none" data-item-id="${item.id}">
-                                <div class="item-drag-handle flex items-center justify-center px-2 border-r border-slate-100/50 bg-slate-50/50 text-slate-300 hover:text-slate-500 cursor-grab">
-                                     <span class="material-symbols-outlined text-[16px]">drag_indicator</span>
-                                </div>
+                                <div class="item-drag-handle flex items-center justify-center px-2 border-r border-slate-100/50 bg-slate-50/50 text-slate-300 hover:text-slate-500 cursor-grab"><span class="material-symbols-outlined text-[16px]">drag_indicator</span></div>
                                 <div class="edit-zone flex-1 p-3 min-w-0 cursor-pointer hover:bg-slate-50 transition-colors flex flex-col justify-center border-r border-slate-100/50">
                                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">${item.label}</p>
                                     <p class="text-slate-800 font-medium text-sm truncate select-all">${item.value}</p>
                                 </div>
-                                <div class="copy-zone w-24 flex flex-col items-center justify-center bg-slate-50 border-l border-slate-100 cursor-pointer hover:bg-primary hover:text-white text-slate-400 active:bg-primary-hover transition-all" data-copy-value="${escapedValue}" title="Click to Copy">
+                                <div class="copy-zone w-24 flex flex-col items-center justify-center bg-slate-50 border-l border-slate-100 cursor-pointer hover:bg-primary hover:text-white text-slate-400 active:bg-primary-hover transition-all" data-copy-value="${String(item.value).replace(/"/g, '&quot;')}">
                                     <span class="material-symbols-outlined text-2xl mb-1">content_copy</span>
                                     <span class="text-[10px] font-bold tracking-wider">COPY</span>
                                 </div>
                             </div>
-                            `;
-                        }).join('')}
-                    </div>
-                    <div class="px-3 pb-3">
+                        `).join('')}
                         <button class="add-item-btn w-full py-2.5 rounded-lg border border-dashed border-slate-300 text-slate-500 text-xs font-medium hover:border-primary hover:text-primary hover:bg-white transition-all flex items-center justify-center gap-1">
-                            <span class="material-symbols-outlined text-[16px]">add</span>
-                            Add Item
+                            <span class="material-symbols-outlined text-[16px]">add</span>Add Item
                         </button>
                     </div>
                 </div>
@@ -776,37 +533,24 @@
 
         // Initialize Sortable
         new Sortable(container, {
-            animation: 150,
-            handle: '.wallet-drag-handle',
-            ghostClass: 'sortable-ghost',
-            onEnd: async function (evt) {
-                const currentFields = await getAllFields();
-                const newOrderIds = Array.from(container.children).map(el => parseInt(el.dataset.id));
-                newOrderIds.forEach((id, index) => {
-                    const field = currentFields.find(f => f.id === id);
-                    if (field) field.order = index;
-                });
-                await updateAllFields(currentFields);
+            animation: 150, handle: '.wallet-drag-handle', ghostClass: 'sortable-ghost',
+            onEnd: async () => {
+                const current = await getAllFields();
+                const ids = Array.from(container.children).map(el => parseInt(el.dataset.id));
+                ids.forEach((id, i) => { const f = current.find(x => x.id === id); if(f) f.order = i; });
+                await updateAllFields(current);
             }
         });
-
         document.querySelectorAll('.item-list-container').forEach(list => {
             new Sortable(list, {
-                animation: 150,
-                handle: '.item-drag-handle',
-                ghostClass: 'sortable-ghost',
-                onEnd: async function (evt) {
+                animation: 150, handle: '.item-drag-handle', ghostClass: 'sortable-ghost',
+                onEnd: async () => {
                     const walletId = parseInt(list.dataset.walletId);
-                    const currentFields = await getAllFields();
-                    const wallet = currentFields.find(f => f.id === walletId);
-                    if (wallet) {
-                        const newItemIds = Array.from(list.children).map(el => parseInt(el.dataset.itemId)).filter(id => !isNaN(id));
-                        const newItems = [];
-                        newItemIds.forEach(id => {
-                            const item = wallet.items.find(i => i.id === id);
-                            if (item) newItems.push(item);
-                        });
-                        wallet.items = newItems;
+                    const fields = await getAllFields();
+                    const wallet = fields.find(f => f.id === walletId);
+                    if(wallet) {
+                        const itemIds = Array.from(list.children).map(el => parseInt(el.dataset.itemId));
+                        wallet.items = itemIds.map(id => wallet.items.find(i => i.id === id)).filter(x => x);
                         await updateField(wallet);
                     }
                 }
@@ -814,261 +558,149 @@
         });
     }
 
-    // --- CR-017: Smart Local Backup ---
-    async function handleExport() {
-        const fields = await getAllFields();
-        const dataStr = JSON.stringify(fields, null, 2);
-        const fileName = `data-entry-backup-${new Date().toISOString().slice(0,10)}.json`;
-        
-        if (navigator.canShare && navigator.canShare({ files: [new File([dataStr], fileName, { type: "application/json" })] })) {
-            try {
-                const file = new File([dataStr], fileName, { type: "application/json" });
-                await navigator.share({
-                    files: [file],
-                    title: 'Backup Data',
-                    text: 'Save to Files'
-                });
-                return; 
-            } catch (err) { console.error(err); }
-        }
-
-        const blob = new Blob([dataStr], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast("Backup Downloaded");
-    }
-
-    async function handleImport(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const importedData = JSON.parse(e.target.result);
-                if (!Array.isArray(importedData)) throw new Error("Invalid Format");
-                for (const item of importedData) { await updateField(item); }
-                renderFields(await getAllFields());
-                showToast("Data Restored");
-            } catch (err) { alert("Invalid JSON"); }
-        };
-        reader.readAsText(file);
-    }
-
-    // --- CR-015: Settings Logic ---
     const settingsDialog = document.getElementById('settings-dialog');
-    const bgUpload = document.getElementById('bg-upload');
-    const bgScale = document.getElementById('bg-scale');
-    const bgOpacity = document.getElementById('bg-opacity');
-    const scaleVal = document.getElementById('scale-val');
-    const opacityVal = document.getElementById('opacity-val');
+    const addDialog = document.getElementById('add-dialog');
+    let editingContext = null;
 
-    let currentConfig = { backgroundImage: 'none', backgroundScale: 100, opacity: 1.0, googleConfig: {} };
-
-    function applyConfig(config) {
-        document.body.style.setProperty('--bg-image', config.backgroundImage.startsWith('data') ? `url(${config.backgroundImage})` : config.backgroundImage);
-        document.body.style.setProperty('--bg-size', `${config.backgroundScale}%`);
-        document.body.style.setProperty('--main-opacity', config.opacity);
-        
-        bgScale.value = config.backgroundScale;
-        bgOpacity.value = config.opacity;
-        scaleVal.textContent = `${config.backgroundScale}%`;
-        opacityVal.textContent = `${Math.round(config.opacity * 100)}%`;
-        
-        // Restore SA Key & Settings if exists
-        if(config.googleConfig) {
-            if (config.googleConfig.saKey) {
-                saKey = config.googleConfig.saKey;
-                document.getElementById('sa-status').textContent = `Loaded: ${saKey.client_email}`;
-                document.getElementById('sa-status').className = "text-[10px] text-green-600 mt-1 font-medium";
-            }
-            if (config.googleConfig.folderName) document.getElementById('sa-folder-name').value = config.googleConfig.folderName;
-            if (config.googleConfig.fileName) document.getElementById('sa-file-name').value = config.googleConfig.fileName;
-        }
-        
-        currentConfig = config;
-    }
-
-    async function initSettings() {
-        const stored = await getSettings();
-        if (stored) applyConfig(stored);
-    }
-
-    async function updateSettings() {
-        currentConfig.backgroundScale = bgScale.value;
-        currentConfig.opacity = bgOpacity.value;
-        applyConfig(currentConfig);
-        await saveSettings(currentConfig);
-    }
-
-    // --- Dialog & Logic ---
-    const dialog = document.getElementById('add-dialog');
-    const dialogTitle = document.getElementById('dialog-title');
-    const labelInput = document.getElementById('field-label');
-    const valueInput = document.getElementById('field-value');
-    const valueGroup = document.getElementById('value-input-group'); 
-
-    let editingContext = null; 
-
-    function openDialog(context) {
+    function openAddDialog(context) {
         editingContext = context;
-        labelInput.value = '';
-        valueInput.value = '';
-        valueGroup.style.display = 'block'; 
-
-        if (context.type === 'new-wallet') {
-            dialogTitle.textContent = "Create New Wallet";
-            labelInput.placeholder = "Wallet Name (e.g., Trip Info)";
-            valueGroup.style.display = 'none'; 
-        } else if (context.type === 'add-item') {
-            dialogTitle.textContent = "Add Item to " + context.walletData.label;
-            labelInput.placeholder = "Label (e.g., Seat Number)";
-        } else if (context.type === 'edit-item') {
-            dialogTitle.textContent = "Edit Item";
+        document.getElementById('field-label').value = '';
+        document.getElementById('field-value').value = '';
+        document.getElementById('value-input-group').style.display = context.type === 'new-wallet' ? 'none' : 'block';
+        if(context.type === 'edit-item') {
             const item = context.walletData.items.find(i => i.id === context.itemId);
-            if (item) {
-                labelInput.value = item.label;
-                valueInput.value = item.value;
-            }
+            document.getElementById('field-label').value = item.label;
+            document.getElementById('field-value').value = item.value;
         }
-        dialog.showModal();
+        addDialog.showModal();
     }
 
-    document.getElementById('dialog-close-btn').onclick = () => dialog.close();
-    document.getElementById('dialog-cancel-btn').onclick = () => dialog.close();
-
-    document.getElementById('dialog-save-btn').onclick = async () => {
-        const label = labelInput.value.trim();
-        const value = valueInput.value.trim();
-        if (!label) { alert("Label is required"); return; }
-        if (editingContext.type === 'new-wallet') {
-            await saveField({ type: 'wallet', label: label, icon: 'folder', items: [] });
-            showToast("Wallet Created");
-        } else if (editingContext.type === 'add-item') {
-            if (!value) { alert("Value is required"); return; }
-            const wallet = editingContext.walletData;
-            if (!wallet.items) wallet.items = [];
-            wallet.items.push({ id: Date.now(), label, value });
-            await updateField(wallet);
-            showToast("Item Added");
-        } else if (editingContext.type === 'edit-item') {
-            if (!value) { alert("Value is required"); return; }
-            const wallet = editingContext.walletData;
-            const idx = wallet.items.findIndex(i => i.id === editingContext.itemId);
-            if (idx !== -1) {
-                wallet.items[idx] = { ...wallet.items[idx], label, value };
-                await updateField(wallet);
-                showToast("Item Updated");
-            }
+    window.onload = async () => {
+        await initDB();
+        const settings = await getSettings();
+        if(settings) {
+            if(settings.backgroundImage) document.body.style.setProperty('--bg-image', `url(${settings.backgroundImage})`);
+            document.body.style.setProperty('--bg-size', `${settings.backgroundScale || 100}%`);
+            document.body.style.setProperty('--main-opacity', settings.opacity || 1);
+            if(settings.gasUrl) document.getElementById('gas-url').value = settings.gasUrl;
+            if(settings.gasFolder) document.getElementById('gas-folder-name').value = settings.gasFolder;
+            if(settings.gasFile) document.getElementById('gas-file-name').value = settings.gasFile;
         }
-        dialog.close();
         renderFields(await getAllFields());
-        if (editingContext.walletId) {
-            const walletEl = document.querySelector(`.wallet-card[data-id="${editingContext.walletId}"]`);
-            if (walletEl) walletEl.classList.add('expanded');
-        }
     };
 
-    // Global Handlers
     document.getElementById('settings-btn').onclick = () => settingsDialog.showModal();
     document.getElementById('settings-close-btn').onclick = () => settingsDialog.close();
-    document.getElementById('icloud-backup-btn').onclick = handleExport;
-    document.getElementById('import-btn-trigger').onclick = () => document.getElementById('import-file').click();
-    document.getElementById('import-file').onchange = handleImport;
+    document.getElementById('gas-backup-btn').onclick = handleGasBackup;
+    document.getElementById('gas-restore-btn').onclick = handleGasRestore;
 
-    bgUpload.onchange = (e) => {
+    document.getElementById('dialog-save-btn').onclick = async () => {
+        const label = document.getElementById('field-label').value.trim();
+        const value = document.getElementById('field-value').value.trim();
+        if(!label) return;
+        if(editingContext.type === 'new-wallet') await saveField({ type: 'wallet', label, items: [] });
+        else if(editingContext.type === 'add-item') {
+            const w = editingContext.walletData;
+            w.items.push({ id: Date.now(), label, value });
+            await updateField(w);
+        } else if(editingContext.type === 'edit-item') {
+            const w = editingContext.walletData;
+            const i = w.items.find(x => x.id === editingContext.itemId);
+            i.label = label; i.value = value;
+            await updateField(w);
+        }
+        addDialog.close();
+        renderFields(await getAllFields());
+    };
+
+    document.getElementById('bg-upload').onchange = e => {
         const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = async (evt) => {
-                currentConfig.backgroundImage = evt.target.result;
-                await updateSettings();
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-    
-    document.getElementById('reset-bg-btn').onclick = async () => {
-        currentConfig.backgroundImage = 'none';
-        bgUpload.value = '';
-        await updateSettings();
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = async evt => {
+            let s = await getSettings() || {};
+            s.backgroundImage = evt.target.result;
+            await saveSettings(s);
+            document.body.style.setProperty('--bg-image', `url(${evt.target.result})`);
+        };
+        reader.readAsDataURL(file);
     };
 
-    bgScale.oninput = () => { scaleVal.textContent = `${bgScale.value}%`; document.body.style.setProperty('--bg-size', `${bgScale.value}%`); };
-    bgScale.onchange = updateSettings;
-    bgOpacity.oninput = () => { opacityVal.textContent = `${Math.round(bgOpacity.value * 100)}%`; document.body.style.setProperty('--main-opacity', bgOpacity.value); };
-    bgOpacity.onchange = updateSettings;
+    document.getElementById('bg-scale').oninput = async e => {
+        const val = e.target.value;
+        document.getElementById('scale-val').textContent = val + '%';
+        document.body.style.setProperty('--bg-size', val + '%');
+        let s = await getSettings() || {};
+        s.backgroundScale = val; await saveSettings(s);
+    };
 
-    document.addEventListener('click', async (e) => {
-        const target = e.target;
-        if (target.closest('.wallet-drag-handle') || target.closest('.item-drag-handle')) return;
-        if (!target.closest('.wallet-card') && !target.closest('dialog') && !target.closest('#settings-btn')) {
-            document.querySelectorAll('.wallet-card.expanded').forEach(card => card.classList.remove('expanded'));
+    document.getElementById('bg-opacity').oninput = async e => {
+        const val = e.target.value;
+        document.getElementById('opacity-val').textContent = Math.round(val * 100) + '%';
+        document.body.style.setProperty('--main-opacity', val);
+        let s = await getSettings() || {};
+        s.opacity = val; await saveSettings(s);
+    };
+
+    document.addEventListener('click', async e => {
+        const t = e.target;
+        if(t.closest('.wallet-drag-handle') || t.closest('.item-drag-handle')) return;
+        if(!t.closest('.wallet-card') && !t.closest('dialog') && !t.closest('#settings-btn')) {
+            document.querySelectorAll('.wallet-card.expanded').forEach(c => c.classList.remove('expanded'));
         }
-        if (target.closest('#add-wallet-btn-top') || target.closest('#add-wallet-btn-bottom')) {
-            openDialog({ type: 'new-wallet' });
-            return;
-        }
-        const walletHeader = target.closest('.wallet-header');
-        if (walletHeader) {
-            const walletCard = walletHeader.closest('.wallet-card');
-            if (target.closest('.delete-wallet-btn')) {
-                e.stopPropagation();
-                if (confirm('Delete this entire wallet?')) {
-                    await deleteField(parseInt(walletCard.dataset.id));
-                    renderFields(await getAllFields());
-                    showToast("Wallet Deleted");
-                }
+        if(t.closest('#add-wallet-btn-top') || t.closest('#add-wallet-btn-bottom')) openAddDialog({ type: 'new-wallet' });
+        const wh = t.closest('.wallet-header');
+        if(wh) {
+            const card = wh.closest('.wallet-card');
+            if(t.closest('.delete-wallet-btn')) {
+                if(confirm('Delete?')) { await deleteField(parseInt(card.dataset.id)); renderFields(await getAllFields()); }
                 return;
             }
-            const wasExpanded = walletCard.classList.contains('expanded');
+            const exp = card.classList.contains('expanded');
             document.querySelectorAll('.wallet-card.expanded').forEach(c => c.classList.remove('expanded'));
-            if (!wasExpanded) walletCard.classList.add('expanded');
-            return;
+            if(!exp) card.classList.add('expanded');
         }
-        const addItemBtn = target.closest('.add-item-btn');
-        if (addItemBtn) {
-            const walletCard = addItemBtn.closest('.wallet-card');
-            const walletData = JSON.parse(decodeURIComponent(walletCard.dataset.walletJson));
-            openDialog({ type: 'add-item', walletId: walletData.id, walletData });
-            return;
+        if(t.closest('.add-item-btn')) {
+            const data = JSON.parse(decodeURIComponent(t.closest('.wallet-card').dataset.walletJson));
+            openAddDialog({ type: 'add-item', walletData: data });
         }
-        const copyZone = target.closest('.copy-zone');
-        if (copyZone) {
-            e.stopPropagation();
-            navigator.clipboard.writeText(copyZone.dataset.copyValue).then(() => showToast("Copied!"));
-            return;
-        }
-        const editZone = target.closest('.edit-zone');
-        if (editZone) {
-            const itemCard = editZone.closest('.item-card');
-            const walletCard = itemCard.closest('.wallet-card');
-            const walletData = JSON.parse(decodeURIComponent(walletCard.dataset.walletJson));
-            const itemId = parseInt(itemCard.dataset.itemId);
-            openDialog({ type: 'edit-item', walletId: walletData.id, itemId, walletData });
-            return;
+        if(t.closest('.copy-zone')) {
+            navigator.clipboard.writeText(t.closest('.copy-zone').dataset.copyValue).then(() => showToast("Copied!"));
+        } else if(t.closest('.edit-zone')) {
+            const card = t.closest('.item-card');
+            const data = JSON.parse(decodeURIComponent(t.closest('.wallet-card').dataset.walletJson));
+            openAddDialog({ type: 'edit-item', walletData: data, itemId: parseInt(card.dataset.itemId) });
         }
     });
 
-    document.getElementById('paste-btn').onclick = async () => {
-        try {
-            const text = await navigator.clipboard.readText();
-            valueInput.value = text;
-            showToast("Pasted");
-        } catch (e) { alert("Paste failed"); }
+    document.getElementById('icloud-backup-btn').onclick = async () => {
+        const data = await getAllFields();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const name = `backup-${new Date().toISOString().slice(0,10)}.json`;
+        if(navigator.canShare && navigator.canShare({ files: [new File([blob], name, {type: 'application/json'})] })) {
+            await navigator.share({ files: [new File([blob], name, {type: 'application/json'})], title: 'Backup' });
+        } else {
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+        }
     };
-
-    window.onload = async () => {
-        try {
-            await initDB();
+    document.getElementById('import-btn-trigger').onclick = () => document.getElementById('import-file').click();
+    document.getElementById('import-file').onchange = e => {
+        const reader = new FileReader();
+        reader.onload = async evt => {
+            const data = JSON.parse(evt.target.result);
+            for(const x of data) await updateField(x);
             renderFields(await getAllFields());
-            await initSettings();
-        } catch (e) { console.error(e); }
+            showToast("Restore Successful");
+        };
+        reader.readAsText(e.target.files[0]);
+    };
+    
+    document.getElementById('reset-bg-btn').onclick = async () => {
+        let s = await getSettings() || {};
+        s.backgroundImage = 'none';
+        await saveSettings(s);
+        document.body.style.setProperty('--bg-image', 'none');
+        document.getElementById('bg-upload').value = '';
     };
 </script>
 </body>
