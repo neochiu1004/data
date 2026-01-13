@@ -222,9 +222,16 @@
             <textarea id="field-value" rows="3" class="w-full rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-primary" placeholder="Enter content..."></textarea>
         </div>
     </div>
-    <div class="px-6 py-4 bg-slate-50 flex justify-end gap-2 border-t border-slate-100">
-        <button id="dialog-cancel-btn" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
-        <button id="dialog-save-btn" class="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white hover:bg-primary-hover shadow-lg shadow-blue-500/20 transition-all transform active:scale-95">Save</button>
+    <!-- CR-024: Updated Footer with Delete Button -->
+    <div class="px-6 py-4 bg-slate-50 flex justify-between items-center border-t border-slate-100">
+        <!-- New Delete Button (Hidden by default) -->
+        <button id="delete-item-btn" class="hidden text-red-500 hover:bg-red-50 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1">
+            <span class="material-symbols-outlined text-[18px]">delete</span> Delete
+        </button>
+        <div class="flex gap-2 ml-auto">
+            <button id="dialog-cancel-btn" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
+            <button id="dialog-save-btn" class="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white hover:bg-primary-hover shadow-lg shadow-blue-500/20 transition-all transform active:scale-95">Save</button>
+        </div>
     </div>
 </dialog>
 
@@ -449,7 +456,7 @@
         } catch (err) {
             alert("Backup Failed: " + err.message);
         } finally {
-            btn.innerHTML = originalContent;
+            btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">backup</span>Backup';
             btn.disabled = false;
         }
     }
@@ -479,7 +486,7 @@
         } catch (err) {
             alert("Restore Error: " + err.message);
         } finally {
-            btn.innerHTML = originalContent;
+            btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">cloud_download</span>Restore';
             btn.disabled = false;
         }
     }
@@ -560,6 +567,7 @@
 
     const settingsDialog = document.getElementById('settings-dialog');
     const addDialog = document.getElementById('add-dialog');
+    const deleteItemBtn = document.getElementById('delete-item-btn');
     let editingContext = null;
 
     function openAddDialog(context) {
@@ -567,10 +575,15 @@
         document.getElementById('field-label').value = '';
         document.getElementById('field-value').value = '';
         document.getElementById('value-input-group').style.display = context.type === 'new-wallet' ? 'none' : 'block';
+        
+        // CR-024: Show/Hide Delete Button
         if(context.type === 'edit-item') {
             const item = context.walletData.items.find(i => i.id === context.itemId);
             document.getElementById('field-label').value = item.label;
             document.getElementById('field-value').value = item.value;
+            deleteItemBtn.classList.remove('hidden');
+        } else {
+            deleteItemBtn.classList.add('hidden');
         }
         addDialog.showModal();
     }
@@ -611,6 +624,18 @@
         }
         addDialog.close();
         renderFields(await getAllFields());
+    };
+
+    // CR-024: Delete Item Logic
+    deleteItemBtn.onclick = async () => {
+        if(editingContext.type === 'edit-item' && confirm("Delete this item?")) {
+            const w = editingContext.walletData;
+            w.items = w.items.filter(i => i.id !== editingContext.itemId);
+            await updateField(w);
+            addDialog.close();
+            renderFields(await getAllFields());
+            showToast("Item Deleted");
+        }
     };
 
     document.getElementById('bg-upload').onchange = e => {
@@ -701,6 +726,15 @@
         await saveSettings(s);
         document.body.style.setProperty('--bg-image', 'none');
         document.getElementById('bg-upload').value = '';
+    };
+
+    // CR-024: Fix Paste
+    document.getElementById('paste-btn').onclick = async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            document.getElementById('field-value').value = text;
+            showToast("Pasted");
+        } catch (e) { alert("Paste failed: " + e.message); }
     };
 </script>
 </body>
