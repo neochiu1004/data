@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
@@ -9,10 +9,10 @@
 <meta name="apple-mobile-web-app-title" content="Data Entry">
 <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFhAJ/wlseKgAAAABJRU5ErkJggg==">
 
-<title>Data Entry Details</title>
+<title>Digital Wallet Dashboard</title>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <!-- CR-019: SortableJS -->
@@ -20,320 +20,229 @@
 
 <script id="tailwind-config">
     tailwind.config = {
+        darkMode: "class",
         theme: {
             extend: {
                 colors: {
-                    "primary": "#2563eb",
-                    "primary-hover": "#1d4ed8",
-                    "background-light": "#f1f5f9",
+                    "primary": "#2463eb",
+                    "background-light": "#f6f6f8",
+                    "background-dark": "#0f172a",
                     "surface-light": "#ffffff",
+                    "surface-dark": "#1e293b",
+                    "text-main-light": "#0f172a",
+                    "text-main-dark": "#f8fafc",
+                    "text-sub-light": "#64748b",
+                    "text-sub-dark": "#94a3b8",
                     "border-light": "#e2e8f0",
-                    "slate-750": "#2d3748",
+                    "border-dark": "#334155",
                 },
                 fontFamily: {
-                    "display": ["Inter", "sans-serif"]
+                    "display": ["Inter", "Noto Sans", "sans-serif"],
+                    "mono": ["JetBrains Mono", "monospace"],
                 },
-                borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px" },
+                borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "3xl": "1.5rem", "full": "9999px" },
+                boxShadow: {
+                    'card': '0 10px 40px -10px rgba(0,0,0,0.3)',
+                    'card-hover': '0 20px 50px -10px rgba(0,0,0,0.4)',
+                }
             },
         },
     }
 </script>
 <style>
-    /* UI-002: Prevent iOS rubber-banding */
+    /* CR-030: Mobile First & Fullscreen */
     html, body {
         overscroll-behavior-y: none;
-        /* CR-015: CSS Variables for Background */
         --bg-image: none;
         --bg-size: 100%;
         --main-opacity: 1;
-        
         background-image: var(--bg-image);
         background-size: var(--bg-size);
         background-position: center;
         background-repeat: no-repeat;
         background-attachment: fixed;
+        min-height: 100vh;
     }
     
-    /* CR-015: Main container transparency override */
-    main.bg-surface-light {
-        background-color: rgba(255, 255, 255, var(--main-opacity)) !important;
-        backdrop-filter: blur(10px); /* Glassmorphism */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    main { -webkit-overflow-scrolling: touch; }
+
+    /* CR-SPEC-025/028: Wallet Stack Spacing */
+    .wallet-card { 
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+        will-change: transform, margin;
+        z-index: var(--z-index);
+    }
+    .wallet-card.expanded { 
+        margin-bottom: 2rem; 
+        transform: translateY(-10px);
+        z-index: 50 !important;
+    }
+    .wallet-card.expanded ~ .wallet-card { 
+        transform: translateY(0) !important; 
+        margin-top: 1rem !important; 
     }
 
-    .material-symbols-outlined {
-        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-    }
-    ::-webkit-scrollbar {
-        width: 8px;
-    }
-    ::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
-    }
-    .line-clamp-2 {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-    /* Dialog Backdrop */
-    dialog::backdrop {
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(4px);
-    }
-    /* Toast Animation */
+    .edit-wallet-trigger:active { opacity: 0.6; transform: scale(0.95); transition: all 0.1s; }
+
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    
+    dialog::backdrop { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); }
     @keyframes fade-in-out {
         0% { opacity: 0; transform: translateY(20px); }
         10% { opacity: 1; transform: translateY(0); }
         90% { opacity: 1; transform: translateY(0); }
         100% { opacity: 0; transform: translateY(-20px); }
     }
-    .toast-message {
-        animation: fade-in-out 2s ease forwards;
-    }
-    /* CR-012: Accordion Transition */
-    .wallet-content {
-        transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
-        max-height: 0;
-        opacity: 0;
-        overflow: hidden;
-    }
-    .wallet-card.expanded .wallet-content {
-        max-height: 1000px; /* Arbitrary large value */
-        opacity: 1;
-    }
-    .chevron-icon {
-        transition: transform 0.3s ease;
-    }
-    .wallet-card.expanded .chevron-icon {
-        transform: rotate(180deg);
-    }
-    
-    /* CR-015: Range Input Styling */
-    input[type=range] {
-        -webkit-appearance: none; 
-        background: transparent; 
-    }
-    input[type=range]::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        height: 16px;
-        width: 16px;
-        border-radius: 50%;
-        background: #2563eb;
-        margin-top: -6px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    }
-    input[type=range]::-webkit-slider-runnable-track {
-        width: 100%;
-        height: 4px;
-        background: #e2e8f0;
-        border-radius: 2px;
-    }
+    .toast-message { animation: fade-in-out 2s ease forwards; }
 
-    /* CR-021: Spinner */
+    .wallet-content {
+        transition: max-height 0.4s ease-in-out, opacity 0.3s ease;
+        max-height: 0; opacity: 0; overflow: hidden;
+    }
+    .wallet-card.expanded .wallet-content { max-height: 2000px; opacity: 1; }
+    
     .spinner {
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-left-color: #ffffff;
-        border-radius: 50%;
-        width: 16px;
-        height: 16px;
-        animation: spin 1s linear infinite;
+        border: 2px solid rgba(255, 255, 255, 0.3); border-left-color: #ffffff; border-radius: 50%;
+        width: 16px; height: 16px; animation: spin 1s linear infinite;
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-    /* CR-019: Sortable Ghost Class */
-    .sortable-ghost {
-        opacity: 0.4;
-        background: #f1f5f9;
-    }
-    .wallet-drag-handle, .item-drag-handle {
-        cursor: grab;
-        touch-action: none; /* Important for mobile drag */
-    }
+    .sortable-ghost { opacity: 0.1; }
 </style>
 </head>
-<body class="bg-background-light font-display text-slate-800 min-h-screen flex flex-col items-center justify-center p-4 sm:p-8 transition-colors duration-200">
-<main class="w-full max-w-3xl bg-surface-light rounded-xl shadow-xl overflow-hidden border border-border-light flex flex-col relative h-[85vh] sm:h-auto sm:min-h-[700px]">
-<!-- CR-009: Clean Header + CR-015: Settings Button -->
-<header class="flex items-center justify-between px-8 py-5 border-b border-border-light sticky top-0 bg-surface-light/90 backdrop-blur-md z-10">
-    <!-- Placeholder for centering -->
-    <div class="w-9"></div>
-    <h1 class="text-lg font-bold tracking-tight text-slate-900">Data Entry Details</h1>
-    <!-- Settings Button -->
-    <button id="settings-btn" class="flex items-center justify-center w-9 h-9 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors" title="Settings">
-        <span class="material-symbols-outlined text-[20px]">settings</span>
-    </button>
-</header>
-<div class="flex-1 overflow-y-auto flex flex-col">
-<div class="p-8 flex-1">
-<div class="flex items-center justify-between mb-6">
-<h3 class="text-sm font-semibold text-primary uppercase tracking-wider">Wallets</h3>
-<!-- CR-FUNC-004: Bind Add Event -->
-<button id="add-wallet-btn-top" class="text-xs font-medium text-primary hover:text-primary-hover flex items-center gap-1">
-<span class="material-symbols-outlined text-[16px]">add</span>
-                New Wallet
+<body class="bg-background-light dark:bg-background-dark text-text-main-light dark:text-text-main-dark selection:bg-primary/20 transition-colors duration-200">
+
+<!-- CR-030: Responsive Container -->
+<div class="relative flex flex-col overflow-hidden w-full h-screen sm:max-w-md sm:mx-auto sm:h-[85vh] sm:my-8 sm:rounded-3xl sm:shadow-2xl sm:border sm:border-border-light sm:dark:border-border-dark bg-background-light dark:bg-background-dark">
+    
+    <!-- Header -->
+    <header class="sticky top-0 z-[60] bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-xl pt-12 px-6 pb-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-extrabold tracking-tight">我的錢包</h1>
+                <div class="flex items-center gap-1.5 mt-1">
+                    <span class="relative flex h-2 w-2">
+                        <span id="sync-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <p class="text-xs font-medium text-text-sub-light dark:text-text-sub-dark uppercase tracking-tighter">Vault Encrypted</p>
+                </div>
+            </div>
+            <button id="settings-btn" class="flex items-center justify-center rounded-full w-10 h-10 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark hover:bg-gray-100 dark:hover:bg-gray-800 transition-all shadow-sm">
+                <span class="material-symbols-outlined text-[20px]">settings</span>
             </button>
-</div>
-<!-- Dynamic Content Container -->
-<div id="fields-container" class="space-y-4">
-    <!-- Content will be injected by JavaScript -->
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto no-scrollbar pb-12">
+        <div class="px-6 pt-6 pb-8">
+            <div class="flex items-end justify-between">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-text-sub-light dark:text-text-sub-dark mb-1">已保護資產</p>
+                    <div class="flex items-baseline gap-2">
+                        <h2 id="total-count" class="text-5xl font-bold tracking-tighter">0</h2>
+                        <span class="text-base font-medium text-text-sub-light dark:text-text-sub-dark">項目</span>
+                    </div>
+                </div>
+                <button id="add-wallet-btn-top" class="group relative overflow-hidden rounded-full bg-text-main-light dark:bg-white text-surface-light dark:text-black pl-4 pr-6 py-3 shadow-lg transition-transform active:scale-95">
+                    <div class="relative z-10 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[22px]">add_circle</span>
+                        <span class="font-bold text-sm">快速新增</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Dynamic Content Container -->
+        <div id="fields-container" class="flex flex-col items-center px-4 -space-y-24 pb-12 isolate">
+            <!-- 錢包卡片將注入於此 -->
+        </div>
+
+        <div class="mt-12 flex flex-col items-center justify-center gap-2 opacity-60">
+            <div class="p-2 rounded-full bg-surface-light dark:bg-surface-dark shadow-sm border border-border-light dark:border-border-dark">
+                <span class="material-symbols-outlined text-primary text-[20px]">lock</span>
+            </div>
+            <p class="text-text-sub-light dark:text-text-sub-dark text-[10px] font-bold tracking-widest uppercase">End-to-End Encrypted</p>
+        </div>
+    </main>
 </div>
 
-<div class="mt-8 pt-6 border-t border-dashed border-slate-200 flex justify-center">
-<button id="add-wallet-btn-bottom" class="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 font-medium border border-slate-200 hover:border-slate-300 transition-all">
-<span class="material-symbols-outlined text-[20px]">add</span>
-                Add Another Wallet
-            </button>
-</div>
-</div>
-<!-- CR-009: Removed Audit Log Footer -->
-<div class="h-8"></div> 
-</div>
-</main>
-
-<!-- CR-008/010/012: Custom Dialog (Add/Edit) -->
-<dialog id="add-dialog" class="rounded-xl shadow-2xl p-0 w-full max-w-md bg-white overflow-hidden">
-    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-        <h3 id="dialog-title" class="font-semibold text-slate-800">Add New Item</h3>
-        <button id="dialog-close-btn" class="text-slate-400 hover:text-slate-600">
-            <span class="material-symbols-outlined">close</span>
-        </button>
+<!-- Add/Edit Dialog -->
+<dialog id="add-dialog" class="rounded-3xl shadow-2xl p-0 w-full max-w-sm bg-white dark:bg-surface-dark overflow-hidden border-none">
+    <div class="px-6 py-5 border-b border-slate-100 dark:border-border-dark flex justify-between items-center bg-slate-50/50 dark:bg-black/20">
+        <h3 id="dialog-title" class="font-bold text-slate-800 dark:text-white">編輯資料</h3>
+        <button id="dialog-close-btn" class="text-slate-400 hover:text-slate-600"><span class="material-symbols-outlined">close</span></button>
     </div>
-    <div class="p-6 space-y-4">
+    <div class="p-6 space-y-5">
         <div>
-            <label id="label-input-label" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5" for="field-label">Name</label>
-            <input type="text" id="field-label" class="w-full rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-primary" placeholder="e.g., Passport Number">
+            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">名稱 (Label)</label>
+            <input type="text" id="field-label" class="w-full rounded-xl border-slate-200 dark:border-border-dark dark:bg-background-dark text-sm focus:ring-primary focus:border-primary" placeholder="名稱">
         </div>
         <div id="value-input-group">
             <div class="flex justify-between items-center mb-1.5">
-                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider" for="field-value">Content</label>
-                <!-- Paste Button -->
-                <button id="paste-btn" class="text-xs flex items-center gap-1 text-primary hover:text-primary-hover font-medium bg-blue-50 px-2 py-0.5 rounded transition-colors" title="Paste from Clipboard">
-                    <span class="material-symbols-outlined text-[14px]">content_paste</span>
-                    Paste
-                </button>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">內容 (Content)</label>
+                <button id="paste-btn" class="text-[10px] font-bold text-primary px-2 py-1 bg-blue-50 dark:bg-primary/10 rounded-lg uppercase">Paste</button>
             </div>
-            <textarea id="field-value" rows="3" class="w-full rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-primary" placeholder="Enter content..."></textarea>
+            <textarea id="field-value" rows="3" class="w-full rounded-xl border-slate-200 dark:border-border-dark dark:bg-background-dark text-sm focus:ring-primary focus:border-primary" placeholder="敏感內容..."></textarea>
         </div>
     </div>
-    <!-- CR-024: Updated Footer with Delete Button -->
-    <div class="px-6 py-4 bg-slate-50 flex justify-between items-center border-t border-slate-100">
-        <!-- New Delete Button (Hidden by default) -->
-        <button id="delete-item-btn" class="hidden text-red-500 hover:bg-red-50 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1">
-            <span class="material-symbols-outlined text-[18px]">delete</span> Delete
-        </button>
-        <div class="flex gap-2 ml-auto">
-            <button id="dialog-cancel-btn" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
-            <button id="dialog-save-btn" class="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white hover:bg-primary-hover shadow-lg shadow-blue-500/20 transition-all transform active:scale-95">Save</button>
+    <div class="px-6 py-5 bg-slate-50 dark:bg-black/20 flex justify-between items-center">
+        <button id="delete-item-btn" class="hidden text-rose-500 font-bold text-[10px] flex items-center gap-1 tracking-widest uppercase"><span class="material-symbols-outlined text-[18px]">delete</span> Delete</button>
+        <div class="flex gap-4 ml-auto">
+            <button id="dialog-cancel-btn" class="text-sm font-bold text-slate-400">Cancel</button>
+            <button id="dialog-save-btn" class="px-6 py-2.5 rounded-full bg-primary text-white text-sm font-bold shadow-lg shadow-blue-500/30 transition-transform active:scale-95">Save</button>
         </div>
     </div>
 </dialog>
 
-<!-- CR-014/015/016/017/020/021/022/023: Settings Dialog -->
-<dialog id="settings-dialog" class="rounded-xl shadow-2xl p-0 w-full max-w-md bg-white overflow-hidden">
-    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-        <h3 class="font-semibold text-slate-800">Settings</h3>
-        <button id="settings-close-btn" class="text-slate-400 hover:text-slate-600">
-            <span class="material-symbols-outlined">close</span>
-        </button>
+<!-- Settings Dialog -->
+<dialog id="settings-dialog" class="rounded-3xl shadow-2xl p-0 w-full max-w-sm bg-white dark:bg-surface-dark overflow-hidden border-none">
+    <div class="px-6 py-5 border-b border-slate-100 dark:border-border-dark flex justify-between items-center bg-slate-50/50 dark:bg-black/20">
+        <h3 class="font-bold text-slate-800 dark:text-white">系統設定</h3>
+        <button id="settings-close-btn" class="text-slate-400 hover:text-slate-600"><span class="material-symbols-outlined">close</span></button>
     </div>
     <div class="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
-        
-        <!-- Section 1: Cloud Backup (GAS Bridge) -->
-        <div>
-            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Cloud Backup (GAS Bridge)</h4>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-[10px] text-slate-500 uppercase font-bold mb-1">Google Apps Script URL</label>
-                    <input type="text" id="gas-url" class="w-full rounded text-xs border-slate-300 bg-white" placeholder="https://script.google.com/macros/s/.../exec">
-                </div>
-                <!-- Custom Path Inputs -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[10px] text-slate-500 uppercase font-bold mb-1">Target Folder</label>
-                        <input type="text" id="gas-folder-name" class="w-full rounded text-xs border-slate-300 bg-white" placeholder="e.g. MyBackups" value="DataEntryBackups">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] text-slate-500 uppercase font-bold mb-1">Filename</label>
-                        <input type="text" id="gas-file-name" class="w-full rounded text-xs border-slate-300 bg-white" placeholder="e.g. backup.json" value="data-entry-backup.json">
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <button id="gas-backup-btn" class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-primary text-white hover:bg-primary-hover transition-all text-sm font-medium shadow-md">
-                        <span class="material-symbols-outlined text-[18px]">cloud_upload</span>Backup
-                    </button>
-                    <button id="gas-restore-btn" class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all text-sm font-medium">
-                        <span class="material-symbols-outlined text-[18px]">cloud_download</span>Restore
-                    </button>
-                </div>
-                <p class="text-[10px] text-slate-400 italic mt-1">No keys needed. Uses a private script to talk to your Drive.</p>
+        <div class="space-y-4">
+            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">備份與導出設定</h4>
+            <div>
+                <label class="block text-[9px] font-bold text-slate-400 mb-1 tracking-widest uppercase">預設備份檔名前綴</label>
+                <input type="text" id="export-prefix" class="w-full rounded-xl text-xs border-slate-200 dark:border-border-dark dark:bg-background-dark" placeholder="例如：my-vault">
             </div>
-        </div>
-
-        <!-- Section 2: Local & iCloud Backup (Retained) -->
-        <div class="border-t border-slate-100 pt-6">
-            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Local Device</h4>
             <div class="grid grid-cols-2 gap-3">
-                <button id="icloud-backup-btn" class="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-slate-200 hover:border-primary hover:bg-blue-50 text-slate-700 hover:text-primary transition-all">
-                    <span class="material-symbols-outlined text-[20px]">ios_share</span>
-                    <span class="text-sm font-medium">Backup / Share</span>
-                </button>
-                <button id="import-btn-trigger" class="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-slate-200 hover:border-primary hover:bg-blue-50 text-slate-700 hover:text-primary transition-all">
-                    <span class="material-symbols-outlined text-[20px]">upload_file</span>
-                    <span class="text-sm font-medium">Restore File</span>
-                </button>
+                <button id="icloud-backup-btn" class="flex flex-col items-center gap-1 p-4 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-transform active:scale-95"><span class="material-symbols-outlined">ios_share</span><span class="text-[10px] font-bold">導出 JSON</span></button>
+                <button id="import-btn-trigger" class="flex flex-col items-center gap-1 p-4 rounded-2xl border border-border-light dark:border-border-dark transition-transform active:scale-95"><span class="material-symbols-outlined">upload_file</span><span class="text-[10px] font-bold">導入 JSON</span></button>
                 <input type="file" id="import-file" class="hidden" accept=".json">
             </div>
-            <p class="text-[10px] text-slate-400 mt-2">
-                On iPhone, click <b>Backup</b> then choose <b>"Save to Files"</b>.
-            </p>
         </div>
-        
-        <!-- Section 3: Appearance Settings (Retained) -->
-        <div class="border-t border-slate-100 pt-6">
-            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Appearance</h4>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Background Image</label>
-                    <label class="flex items-center justify-center w-full h-20 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-primary hover:bg-blue-50 transition-all">
-                        <div class="flex flex-col items-center">
-                            <span class="material-symbols-outlined text-slate-400">image</span>
-                            <span class="text-xs text-slate-500 mt-1">Click to Upload</span>
-                        </div>
-                        <input type="file" id="bg-upload" class="hidden" accept="image/*">
-                    </label>
-                    <button id="reset-bg-btn" class="text-xs text-red-500 hover:underline mt-2">Remove Background</button>
-                </div>
-                <div>
-                    <div class="flex justify-between mb-1">
-                        <label class="text-sm font-medium text-slate-700">Image Scale</label>
-                        <span id="scale-val" class="text-xs text-slate-500">100%</span>
-                    </div>
-                    <input type="range" id="bg-scale" min="50" max="200" value="100" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
-                </div>
-                <div>
-                    <div class="flex justify-between mb-1">
-                        <label class="text-sm font-medium text-slate-700">Card Transparency</label>
-                        <span id="opacity-val" class="text-xs text-slate-500">100%</span>
-                    </div>
-                    <input type="range" id="bg-opacity" min="0.1" max="1.0" step="0.1" value="1.0" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
-                </div>
+        <div class="border-t border-slate-100 dark:border-border-dark pt-6 space-y-4">
+            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">雲端備份 (GAS Bridge)</h4>
+            <input type="text" id="gas-url" class="w-full rounded-xl text-xs border-slate-200 dark:border-border-dark dark:bg-background-dark" placeholder="GAS 腳本 URL">
+            <div class="grid grid-cols-2 gap-3">
+                <button id="gas-backup-btn" class="flex flex-col items-center gap-1 p-4 rounded-2xl bg-primary text-white transition-transform active:scale-95"><span class="material-symbols-outlined">cloud_upload</span><span class="text-[10px] font-bold">雲端備份</span></button>
+                <button id="gas-restore-btn" class="flex flex-col items-center gap-1 p-4 rounded-2xl border border-border-light dark:border-border-dark transition-transform active:scale-95"><span class="material-symbols-outlined">cloud_download</span><span class="text-[10px] font-bold">雲端還原</span></button>
             </div>
+        </div>
+        <div class="border-t border-slate-100 dark:border-border-dark pt-6 space-y-4">
+            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">視覺自定義</h4>
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium">背景比例</span>
+                <span id="scale-val" class="text-[10px] font-bold">100%</span>
+            </div>
+            <input type="range" id="bg-scale" min="50" max="200" value="100" class="w-full">
+            <label class="block w-full py-4 text-center rounded-2xl border-2 border-dashed border-slate-200 dark:border-border-dark text-[10px] font-bold text-slate-400 cursor-pointer">
+                更換背景圖
+                <input type="file" id="bg-upload" class="hidden" accept="image/*">
+            </label>
+            <button id="reset-bg-btn" class="w-full text-center text-[10px] font-bold text-rose-500 uppercase tracking-widest">Clear Background</button>
         </div>
     </div>
 </dialog>
 
-<!-- Toast Container -->
-<div id="toast-container" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none"></div>
+<div id="toast-container" class="fixed bottom-12 left-1/2 -translate-x-1/2 z-[100] pointer-events-none"></div>
 
 <script>
-    // --- DB & Init ---
     const DB_NAME = 'LegacyDataDB';
     const DB_VERSION = 2;
     let db;
@@ -344,12 +253,8 @@
             request.onerror = () => reject('DB Error');
             request.onupgradeneeded = event => {
                 const db = event.target.result;
-                if (!db.objectStoreNames.contains('fields')) {
-                    const store = db.createObjectStore('fields', { keyPath: 'id', autoIncrement: true });
-                }
-                if (!db.objectStoreNames.contains('settings')) {
-                    db.createObjectStore('settings', { keyPath: 'key' });
-                }
+                if (!db.objectStoreNames.contains('fields')) db.createObjectStore('fields', { keyPath: 'id', autoIncrement: true });
+                if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'key' });
             };
             request.onsuccess = event => { db = event.target.result; resolve(db); };
         });
@@ -358,8 +263,7 @@
     async function getAllFields() {
         return new Promise((resolve) => {
             const transaction = db.transaction(['fields'], 'readonly');
-            const store = transaction.objectStore('fields');
-            const request = store.getAll();
+            const request = transaction.objectStore('fields').getAll();
             request.onsuccess = () => {
                 const results = request.result;
                 results.sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -409,128 +313,79 @@
         return new Promise(r => transaction.oncomplete = r);
     }
 
-    function showToast(message, duration = 3000) {
+    function showToast(message) {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
-        toast.className = 'toast-message bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2 mb-2';
-        toast.innerHTML = `<span class="material-symbols-outlined text-[18px] text-green-400">check_circle</span> ${message}`;
+        toast.className = 'toast-message bg-black/80 dark:bg-white text-white dark:text-black px-6 py-3 rounded-full shadow-2xl text-xs font-bold flex items-center gap-2 mb-2 backdrop-blur-md';
+        toast.innerHTML = `<span class="material-symbols-outlined text-[18px]">verified</span> ${message}`;
         container.appendChild(toast);
-        setTimeout(() => toast.remove(), duration);
+        setTimeout(() => toast.remove(), 2000);
     }
 
-    // --- Google Apps Script Backup Logic ---
-    async function handleGasBackup() {
-        const url = document.getElementById('gas-url').value.trim();
-        const folderName = document.getElementById('gas-folder-name').value.trim() || "DataEntryBackups";
-        const fileName = document.getElementById('gas-file-name').value.trim() || "data-entry-backup.json";
-
-        if (!url) return alert("Please enter GAS URL in Settings.");
-        
-        const btn = document.getElementById('gas-backup-btn');
-        const originalContent = btn.innerHTML;
-        btn.innerHTML = '<div class="spinner"></div> Uploading...';
-        btn.disabled = true;
-
-        try {
-            const fields = await getAllFields();
-            const payload = {
-                folder: folderName,
-                filename: fileName,
-                content: fields
-            };
-            
-            // Save Settings
-            let s = await getSettings() || {};
-            s.gasUrl = url;
-            s.gasFolder = folderName;
-            s.gasFile = fileName;
-            await saveSettings(s);
-
-            await fetch(url, {
-                method: 'POST',
-                mode: 'no-cors', 
-                body: JSON.stringify(payload)
-            });
-
-            showToast("Backup Signal Sent");
-        } catch (err) {
-            alert("Backup Failed: " + err.message);
-        } finally {
-            btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">backup</span>Backup';
-            btn.disabled = false;
-        }
-    }
-
-    async function handleGasRestore() {
-        const url = document.getElementById('gas-url').value.trim();
-        const folderName = document.getElementById('gas-folder-name').value.trim() || "DataEntryBackups";
-        const fileName = document.getElementById('gas-file-name').value.trim() || "data-entry-backup.json";
-
-        if (!url) return alert("Please enter GAS URL in Settings.");
-        
-        const btn = document.getElementById('gas-restore-btn');
-        btn.innerHTML = '<div class="spinner"></div> Loading...';
-        btn.disabled = true;
-
-        try {
-            const fullUrl = `${url}?folder=${encodeURIComponent(folderName)}&filename=${encodeURIComponent(fileName)}`;
-            const res = await fetch(fullUrl);
-            if (!res.ok) throw new Error("File not found or Script error");
-            const data = await res.json();
-            
-            if (Array.isArray(data)) {
-                for (const item of data) await updateField(item);
-                renderFields(await getAllFields());
-                showToast("Data Restored Successfully");
-            }
-        } catch (err) {
-            alert("Restore Error: " + err.message);
-        } finally {
-            btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">cloud_download</span>Restore';
-            btn.disabled = false;
-        }
-    }
-
-    // --- UI Rendering ---
+    // --- CR-027/028: Modern Render with Interactivity ---
     function renderFields(fields) {
         const container = document.getElementById('fields-container');
-        container.innerHTML = fields.length === 0 ? `<div class="h-64 border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-slate-400">Empty</div>` : '';
+        const totalText = document.getElementById('total-count');
+        let totalItemsCount = 0;
+        
+        container.innerHTML = fields.length === 0 ? `<div class="mt-20 opacity-20 text-center"><span class="material-symbols-outlined text-6xl">inventory_2</span><p class="text-xs font-bold uppercase mt-2 tracking-widest">No Vaults</p></div>` : '';
 
-        fields.forEach(wallet => {
+        const themes = [
+            { from: 'blue-600', via: 'blue-700', to: 'blue-900', text: 'blue-200', icon: 'flight' },
+            { from: 'slate-700', via: 'slate-800', to: 'slate-950', text: 'slate-300', icon: 'account_balance' },
+            { from: 'rose-700', via: 'rose-900', to: 'rose-950', text: 'rose-200', icon: 'vpn_key' },
+            { from: 'emerald-600', via: 'emerald-800', to: 'emerald-950', text: 'emerald-200', icon: 'badge' }
+        ];
+
+        fields.forEach((wallet, idx) => {
+            const theme = themes[idx % themes.length];
             const items = wallet.items || [];
+            totalItemsCount += items.length;
+
             const walletHtml = `
-            <div class="wallet-card group bg-white border border-slate-200 rounded-xl overflow-hidden transition-all duration-300 hover:shadow-md mb-4" data-id="${wallet.id}" data-wallet-json="${encodeURIComponent(JSON.stringify(wallet))}">
-                <div class="wallet-header flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 select-none">
-                    <div class="flex items-center gap-3">
-                        <div class="wallet-drag-handle text-slate-300 hover:text-slate-500 cursor-grab px-1"><span class="material-symbols-outlined text-[20px]">drag_indicator</span></div>
-                        <div class="w-10 h-10 rounded-lg bg-blue-50 text-primary flex items-center justify-center"><span class="material-symbols-outlined">${wallet.icon || 'folder'}</span></div>
-                        <div>
-                            <h4 class="font-bold text-slate-700 text-sm uppercase">${wallet.label}</h4>
-                            <p class="text-xs text-slate-400">${items.length} Items</p>
+            <div class="wallet-card group relative w-full rounded-3xl bg-gradient-to-br from-${theme.from} via-${theme.via} to-${theme.to} shadow-card border-t border-white/20 overflow-hidden" 
+                 data-id="${wallet.id}" data-wallet-json="${encodeURIComponent(JSON.stringify(wallet))}" style="--z-index: ${idx}">
+                <div class="wallet-header relative h-56 flex flex-col justify-between p-6 cursor-pointer select-none">
+                    <div class="absolute inset-0 bg-white/5 opacity-10 pointer-events-none"></div>
+                    <div class="flex justify-between items-center relative z-10 w-full">
+                        <div class="flex items-center gap-2">
+                            <div class="h-8 w-10 rounded-md bg-gradient-to-br from-yellow-200 to-yellow-500 shadow-sm opacity-90 wallet-drag-handle"></div>
+                            <span class="material-symbols-outlined text-white/50 text-[18px]">contactless</span>
+                        </div>
+                        
+                        <!-- CR-028: Clickable Title -->
+                        <div class="absolute left-1/2 -translate-x-1/2 text-center edit-wallet-trigger px-4 py-1 rounded-lg">
+                            <h3 class="text-lg font-extrabold text-white tracking-tight truncate max-w-[150px] uppercase">${wallet.label}</h3>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <div class="p-2 bg-white/10 rounded-xl backdrop-blur-md"><span class="material-symbols-outlined text-white text-[22px]">${wallet.icon || theme.icon}</span></div>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button class="action-btn delete-wallet-btn p-2 rounded-full text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"><span class="material-symbols-outlined text-[20px]">delete</span></button>
-                        <span class="material-symbols-outlined text-slate-400 chevron-icon">expand_more</span>
+
+                    <div class="relative z-10">
+                        <div class="flex justify-between items-center border-t border-white/10 pt-3">
+                            <p class="font-mono text-white/40 text-[10px] tracking-[0.2em] uppercase">Security Vault • ${String(wallet.id).slice(-4)}</p>
+                            <span class="text-[9px] font-bold bg-black/30 text-white px-3 py-1 rounded-full backdrop-blur-md uppercase">${items.length} Items</span>
+                        </div>
                     </div>
                 </div>
-                <div class="wallet-content bg-slate-50 border-t border-slate-100">
-                    <div class="p-3 space-y-2 item-list-container" data-wallet-id="${wallet.id}">
+                <div class="wallet-content bg-background-light dark:bg-surface-dark border-t dark:border-border-dark">
+                    <div class="p-4 space-y-3 item-list-container" data-wallet-id="${wallet.id}">
                         ${items.map(item => `
-                            <div class="item-card bg-white rounded-lg border border-slate-200 shadow-sm flex overflow-hidden select-none" data-item-id="${item.id}">
-                                <div class="item-drag-handle flex items-center justify-center px-2 border-r border-slate-100/50 bg-slate-50/50 text-slate-300 hover:text-slate-500 cursor-grab"><span class="material-symbols-outlined text-[16px]">drag_indicator</span></div>
-                                <div class="edit-zone flex-1 p-3 min-w-0 cursor-pointer hover:bg-slate-50 transition-colors flex flex-col justify-center border-r border-slate-100/50">
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">${item.label}</p>
-                                    <p class="text-slate-800 font-medium text-sm truncate select-all">${item.value}</p>
+                            <div class="item-card bg-white dark:bg-background-dark rounded-2xl border border-slate-100 dark:border-border-dark shadow-sm flex overflow-hidden" data-item-id="${item.id}">
+                                <div class="item-drag-handle flex items-center justify-center px-3 text-slate-200"><span class="material-symbols-outlined text-[18px]">drag_indicator</span></div>
+                                <div class="edit-zone flex-1 py-4 pr-2 min-w-0 cursor-pointer">
+                                    <p class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-0.5">${item.label}</p>
+                                    <p class="font-mono text-sm font-bold truncate">${item.value}</p>
                                 </div>
-                                <div class="copy-zone w-24 flex flex-col items-center justify-center bg-slate-50 border-l border-slate-100 cursor-pointer hover:bg-primary hover:text-white text-slate-400 active:bg-primary-hover transition-all" data-copy-value="${String(item.value).replace(/"/g, '&quot;')}">
-                                    <span class="material-symbols-outlined text-2xl mb-1">content_copy</span>
-                                    <span class="text-[10px] font-bold tracking-wider">COPY</span>
+                                <div class="copy-zone w-16 flex items-center justify-center bg-primary text-white active:bg-primary-hover transition-colors" data-copy-value="${String(item.value).replace(/"/g, '&quot;')}">
+                                    <span class="material-symbols-outlined text-xl">content_copy</span>
                                 </div>
                             </div>
                         `).join('')}
-                        <button class="add-item-btn w-full py-2.5 rounded-lg border border-dashed border-slate-300 text-slate-500 text-xs font-medium hover:border-primary hover:text-primary hover:bg-white transition-all flex items-center justify-center gap-1">
-                            <span class="material-symbols-outlined text-[16px]">add</span>Add Item
+                        <button class="add-item-btn w-full py-4 rounded-2xl border-2 border-dashed border-slate-200 dark:border-border-dark text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:border-primary transition-all">
+                            + Add Item
                         </button>
                     </div>
                 </div>
@@ -538,9 +393,10 @@
             container.insertAdjacentHTML('beforeend', walletHtml);
         });
 
-        // Initialize Sortable
+        totalText.textContent = totalItemsCount;
+
         new Sortable(container, {
-            animation: 150, handle: '.wallet-drag-handle', ghostClass: 'sortable-ghost',
+            animation: 250, handle: '.wallet-drag-handle', ghostClass: 'sortable-ghost',
             onEnd: async () => {
                 const current = await getAllFields();
                 const ids = Array.from(container.children).map(el => parseInt(el.dataset.id));
@@ -550,7 +406,7 @@
         });
         document.querySelectorAll('.item-list-container').forEach(list => {
             new Sortable(list, {
-                animation: 150, handle: '.item-drag-handle', ghostClass: 'sortable-ghost',
+                animation: 200, handle: '.item-drag-handle', ghostClass: 'sortable-ghost',
                 onEnd: async () => {
                     const walletId = parseInt(list.dataset.walletId);
                     const fields = await getAllFields();
@@ -565,25 +421,39 @@
         });
     }
 
-    const settingsDialog = document.getElementById('settings-dialog');
     const addDialog = document.getElementById('add-dialog');
+    const settingsDialog = document.getElementById('settings-dialog');
     const deleteItemBtn = document.getElementById('delete-item-btn');
     let editingContext = null;
 
+    // CR-028/029: Expanded Dialog Logic
     function openAddDialog(context) {
         editingContext = context;
         document.getElementById('field-label').value = '';
         document.getElementById('field-value').value = '';
-        document.getElementById('value-input-group').style.display = context.type === 'new-wallet' ? 'none' : 'block';
         
-        // CR-024: Show/Hide Delete Button
-        if(context.type === 'edit-item') {
+        const valGroup = document.getElementById('value-input-group');
+        const dialogTitle = document.getElementById('dialog-title');
+        
+        valGroup.style.display = (context.type === 'new-wallet' || context.type === 'edit-wallet') ? 'none' : 'block';
+        deleteItemBtn.classList.add('hidden');
+        deleteItemBtn.innerHTML = `<span class="material-symbols-outlined text-[18px]">delete</span> 刪除項目`;
+
+        if(context.type === 'new-wallet') {
+            dialogTitle.textContent = "建立新錢包";
+        } else if(context.type === 'edit-wallet') {
+            dialogTitle.textContent = "修改錢包名稱";
+            document.getElementById('field-label').value = context.walletData.label;
+            deleteItemBtn.classList.remove('hidden');
+            deleteItemBtn.innerHTML = `<span class="material-symbols-outlined text-[18px]">delete</span> 刪除錢包`;
+        } else if(context.type === 'edit-item') {
+            dialogTitle.textContent = "編輯內容";
             const item = context.walletData.items.find(i => i.id === context.itemId);
             document.getElementById('field-label').value = item.label;
             document.getElementById('field-value').value = item.value;
             deleteItemBtn.classList.remove('hidden');
         } else {
-            deleteItemBtn.classList.add('hidden');
+            dialogTitle.textContent = "新增內容";
         }
         addDialog.showModal();
     }
@@ -592,27 +462,31 @@
         await initDB();
         const settings = await getSettings();
         if(settings) {
-            if(settings.backgroundImage) document.body.style.setProperty('--bg-image', `url(${settings.backgroundImage})`);
+            if(settings.backgroundImage && settings.backgroundImage !== 'none') document.body.style.setProperty('--bg-image', `url(${settings.backgroundImage})`);
             document.body.style.setProperty('--bg-size', `${settings.backgroundScale || 100}%`);
-            document.body.style.setProperty('--main-opacity', settings.opacity || 1);
             if(settings.gasUrl) document.getElementById('gas-url').value = settings.gasUrl;
-            if(settings.gasFolder) document.getElementById('gas-folder-name').value = settings.gasFolder;
-            if(settings.gasFile) document.getElementById('gas-file-name').value = settings.gasFile;
+            if(settings.exportPrefix) document.getElementById('export-prefix').value = settings.exportPrefix;
         }
         renderFields(await getAllFields());
     };
 
     document.getElementById('settings-btn').onclick = () => settingsDialog.showModal();
     document.getElementById('settings-close-btn').onclick = () => settingsDialog.close();
-    document.getElementById('gas-backup-btn').onclick = handleGasBackup;
-    document.getElementById('gas-restore-btn').onclick = handleGasRestore;
+    document.getElementById('dialog-close-btn').onclick = () => addDialog.close();
+    document.getElementById('dialog-cancel-btn').onclick = () => addDialog.close();
 
     document.getElementById('dialog-save-btn').onclick = async () => {
         const label = document.getElementById('field-label').value.trim();
         const value = document.getElementById('field-value').value.trim();
         if(!label) return;
-        if(editingContext.type === 'new-wallet') await saveField({ type: 'wallet', label, items: [] });
-        else if(editingContext.type === 'add-item') {
+
+        if(editingContext.type === 'new-wallet') {
+            await saveField({ type: 'wallet', label, items: [] });
+        } else if(editingContext.type === 'edit-wallet') {
+            const w = editingContext.walletData;
+            w.label = label;
+            await updateField(w);
+        } else if(editingContext.type === 'add-item') {
             const w = editingContext.walletData;
             w.items.push({ id: Date.now(), label, value });
             await updateField(w);
@@ -624,73 +498,53 @@
         }
         addDialog.close();
         renderFields(await getAllFields());
+        showToast("儲存成功");
     };
 
-    // CR-024: Delete Item Logic
     deleteItemBtn.onclick = async () => {
-        if(editingContext.type === 'edit-item' && confirm("Delete this item?")) {
+        if(!confirm("確定要永久刪除？")) return;
+        
+        if(editingContext.type === 'edit-wallet') {
+            await deleteField(editingContext.walletData.id);
+        } else {
             const w = editingContext.walletData;
             w.items = w.items.filter(i => i.id !== editingContext.itemId);
             await updateField(w);
-            addDialog.close();
-            renderFields(await getAllFields());
-            showToast("Item Deleted");
         }
-    };
-
-    document.getElementById('bg-upload').onchange = e => {
-        const file = e.target.files[0];
-        if(!file) return;
-        const reader = new FileReader();
-        reader.onload = async evt => {
-            let s = await getSettings() || {};
-            s.backgroundImage = evt.target.result;
-            await saveSettings(s);
-            document.body.style.setProperty('--bg-image', `url(${evt.target.result})`);
-        };
-        reader.readAsDataURL(file);
-    };
-
-    document.getElementById('bg-scale').oninput = async e => {
-        const val = e.target.value;
-        document.getElementById('scale-val').textContent = val + '%';
-        document.body.style.setProperty('--bg-size', val + '%');
-        let s = await getSettings() || {};
-        s.backgroundScale = val; await saveSettings(s);
-    };
-
-    document.getElementById('bg-opacity').oninput = async e => {
-        const val = e.target.value;
-        document.getElementById('opacity-val').textContent = Math.round(val * 100) + '%';
-        document.body.style.setProperty('--main-opacity', val);
-        let s = await getSettings() || {};
-        s.opacity = val; await saveSettings(s);
+        addDialog.close();
+        renderFields(await getAllFields());
+        showToast("已刪除");
     };
 
     document.addEventListener('click', async e => {
         const t = e.target;
         if(t.closest('.wallet-drag-handle') || t.closest('.item-drag-handle')) return;
-        if(!t.closest('.wallet-card') && !t.closest('dialog') && !t.closest('#settings-btn')) {
-            document.querySelectorAll('.wallet-card.expanded').forEach(c => c.classList.remove('expanded'));
+        if(t.closest('#add-wallet-btn-top')) openAddDialog({ type: 'new-wallet' });
+        
+        // CR-028: Handle Wallet Edit Trigger
+        const editTrigger = t.closest('.edit-wallet-trigger');
+        if(editTrigger) {
+            e.stopPropagation();
+            const data = JSON.parse(decodeURIComponent(editTrigger.closest('.wallet-card').dataset.walletJson));
+            openAddDialog({ type: 'edit-wallet', walletData: data });
+            return;
         }
-        if(t.closest('#add-wallet-btn-top') || t.closest('#add-wallet-btn-bottom')) openAddDialog({ type: 'new-wallet' });
+
         const wh = t.closest('.wallet-header');
         if(wh) {
             const card = wh.closest('.wallet-card');
-            if(t.closest('.delete-wallet-btn')) {
-                if(confirm('Delete?')) { await deleteField(parseInt(card.dataset.id)); renderFields(await getAllFields()); }
-                return;
-            }
             const exp = card.classList.contains('expanded');
             document.querySelectorAll('.wallet-card.expanded').forEach(c => c.classList.remove('expanded'));
             if(!exp) card.classList.add('expanded');
         }
+
         if(t.closest('.add-item-btn')) {
             const data = JSON.parse(decodeURIComponent(t.closest('.wallet-card').dataset.walletJson));
             openAddDialog({ type: 'add-item', walletData: data });
         }
+        
         if(t.closest('.copy-zone')) {
-            navigator.clipboard.writeText(t.closest('.copy-zone').dataset.copyValue).then(() => showToast("Copied!"));
+            navigator.clipboard.writeText(t.closest('.copy-zone').dataset.copyValue).then(() => showToast("已複製至剪貼簿"));
         } else if(t.closest('.edit-zone')) {
             const card = t.closest('.item-card');
             const data = JSON.parse(decodeURIComponent(t.closest('.wallet-card').dataset.walletJson));
@@ -698,16 +552,27 @@
         }
     });
 
+    // CR-029: Custom Filename Export
     document.getElementById('icloud-backup-btn').onclick = async () => {
+        const settings = await getSettings() || {};
+        const prefix = settings.exportPrefix || 'vault';
         const data = await getAllFields();
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-        const name = `backup-${new Date().toISOString().slice(0,10)}.json`;
-        if(navigator.canShare && navigator.canShare({ files: [new File([blob], name, {type: 'application/json'})] })) {
-            await navigator.share({ files: [new File([blob], name, {type: 'application/json'})], title: 'Backup' });
+        const name = `${prefix}-${new Date().toISOString().slice(0,10)}.json`;
+        if(navigator.canShare) {
+            await navigator.share({ files: [new File([blob], name, {type: 'application/json'})], title: 'Vault Backup' });
         } else {
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
         }
     };
+
+    // Save Export Prefix on change
+    document.getElementById('export-prefix').onchange = async (e) => {
+        let s = await getSettings() || {};
+        s.exportPrefix = e.target.value;
+        await saveSettings(s);
+    };
+
     document.getElementById('import-btn-trigger').onclick = () => document.getElementById('import-file').click();
     document.getElementById('import-file').onchange = e => {
         const reader = new FileReader();
@@ -715,26 +580,31 @@
             const data = JSON.parse(evt.target.result);
             for(const x of data) await updateField(x);
             renderFields(await getAllFields());
-            showToast("Restore Successful");
+            showToast("數據導入完成");
         };
         reader.readAsText(e.target.files[0]);
     };
-    
-    document.getElementById('reset-bg-btn').onclick = async () => {
-        let s = await getSettings() || {};
-        s.backgroundImage = 'none';
-        await saveSettings(s);
-        document.body.style.setProperty('--bg-image', 'none');
-        document.getElementById('bg-upload').value = '';
-    };
 
-    // CR-024: Fix Paste
+    document.getElementById('bg-upload').onchange = e => {
+        const reader = new FileReader();
+        reader.onload = async evt => {
+            let s = await getSettings() || {}; s.backgroundImage = evt.target.result;
+            await saveSettings(s); document.body.style.setProperty('--bg-image', `url(${evt.target.result})`);
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    };
+    document.getElementById('bg-scale').oninput = e => {
+        document.getElementById('scale-val').textContent = e.target.value + '%';
+        document.body.style.setProperty('--bg-size', e.target.value + '%');
+    };
+    document.getElementById('reset-bg-btn').onclick = async () => {
+        let s = await getSettings() || {}; s.backgroundImage = 'none';
+        await saveSettings(s); document.body.style.setProperty('--bg-image', 'none');
+    };
     document.getElementById('paste-btn').onclick = async () => {
-        try {
-            const text = await navigator.clipboard.readText();
-            document.getElementById('field-value').value = text;
-            showToast("Pasted");
-        } catch (e) { alert("Paste failed: " + e.message); }
+        const text = await navigator.clipboard.readText();
+        document.getElementById('field-value').value = text;
+        showToast("已從剪貼簿貼上");
     };
 </script>
 </body>
