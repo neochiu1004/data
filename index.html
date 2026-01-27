@@ -50,9 +50,14 @@
     }
 </script>
 <style>
-    /* CR-030: Mobile First & Fullscreen */
+    /* CR-030/031: Layout & Background Scoping */
     html, body {
         overscroll-behavior-y: none;
+        min-height: 100vh;
+        background-color: #e5e7eb;
+    }
+
+    #app-shell {
         --bg-image: none;
         --bg-size: 100%;
         --main-opacity: 1;
@@ -60,15 +65,14 @@
         background-size: var(--bg-size);
         background-position: center;
         background-repeat: no-repeat;
-        background-attachment: fixed;
-        min-height: 100vh;
+        background-attachment: scroll;
     }
     
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     main { -webkit-overflow-scrolling: touch; }
 
-    /* CR-SPEC-025/028: Wallet Stack Spacing */
+    /* Wallet Stack Spacing Logic */
     .wallet-card { 
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
         will-change: transform, margin;
@@ -85,7 +89,6 @@
     }
 
     .edit-wallet-trigger:active { opacity: 0.6; transform: scale(0.95); transition: all 0.1s; }
-
     .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
     
     dialog::backdrop { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); }
@@ -108,14 +111,12 @@
         width: 16px; height: 16px; animation: spin 1s linear infinite;
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
     .sortable-ghost { opacity: 0.1; }
 </style>
 </head>
-<body class="bg-background-light dark:bg-background-dark text-text-main-light dark:text-text-main-dark selection:bg-primary/20 transition-colors duration-200">
+<body class="text-text-main-light dark:text-text-main-dark selection:bg-primary/20 transition-colors duration-200">
 
-<!-- CR-030: Responsive Container -->
-<div class="relative flex flex-col overflow-hidden w-full h-screen sm:max-w-md sm:mx-auto sm:h-[85vh] sm:my-8 sm:rounded-3xl sm:shadow-2xl sm:border sm:border-border-light sm:dark:border-border-dark bg-background-light dark:bg-background-dark">
+<div id="app-shell" class="relative flex flex-col overflow-hidden w-full h-screen sm:max-w-md sm:mx-auto sm:h-[85vh] sm:my-8 sm:rounded-3xl sm:shadow-2xl sm:border sm:border-border-light sm:dark:border-border-dark bg-background-light dark:bg-background-dark">
     
     <!-- Header -->
     <header class="sticky top-0 z-[60] bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-xl pt-12 px-6 pb-4">
@@ -155,9 +156,8 @@
             </div>
         </div>
 
-        <!-- Dynamic Content Container -->
         <div id="fields-container" class="flex flex-col items-center px-4 -space-y-24 pb-12 isolate">
-            <!-- 錢包卡片將注入於此 -->
+            <!-- Content Injected via JS -->
         </div>
 
         <div class="mt-12 flex flex-col items-center justify-center gap-2 opacity-60">
@@ -197,13 +197,14 @@
     </div>
 </dialog>
 
-<!-- Settings Dialog -->
+<!-- Settings Dialog (Restored GAS UI) -->
 <dialog id="settings-dialog" class="rounded-3xl shadow-2xl p-0 w-full max-w-sm bg-white dark:bg-surface-dark overflow-hidden border-none">
     <div class="px-6 py-5 border-b border-slate-100 dark:border-border-dark flex justify-between items-center bg-slate-50/50 dark:bg-black/20">
         <h3 class="font-bold text-slate-800 dark:text-white">系統設定</h3>
         <button id="settings-close-btn" class="text-slate-400 hover:text-slate-600"><span class="material-symbols-outlined">close</span></button>
     </div>
     <div class="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
+        
         <div class="space-y-4">
             <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">備份與導出設定</h4>
             <div>
@@ -216,14 +217,30 @@
                 <input type="file" id="import-file" class="hidden" accept=".json">
             </div>
         </div>
+
+        <!-- CR-032: Restored Cloud Backup UI -->
         <div class="border-t border-slate-100 dark:border-border-dark pt-6 space-y-4">
             <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">雲端備份 (GAS Bridge)</h4>
-            <input type="text" id="gas-url" class="w-full rounded-xl text-xs border-slate-200 dark:border-border-dark dark:bg-background-dark" placeholder="GAS 腳本 URL">
+            <div>
+                <label class="block text-[9px] font-bold text-slate-400 mb-1 tracking-widest uppercase">Google Apps Script URL</label>
+                <input type="text" id="gas-url" class="w-full rounded-xl text-xs border-slate-200 dark:border-border-dark dark:bg-background-dark" placeholder="https://script.google.com/...">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[9px] font-bold text-slate-400 mb-1 tracking-widest uppercase">雲端資料夾</label>
+                    <input type="text" id="gas-folder-name" class="w-full rounded-xl text-xs border-slate-200 dark:border-border-dark dark:bg-background-dark" placeholder="Backups">
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-slate-400 mb-1 tracking-widest uppercase">雲端檔名</label>
+                    <input type="text" id="gas-file-name" class="w-full rounded-xl text-xs border-slate-200 dark:border-border-dark dark:bg-background-dark" placeholder="vault.json">
+                </div>
+            </div>
             <div class="grid grid-cols-2 gap-3">
                 <button id="gas-backup-btn" class="flex flex-col items-center gap-1 p-4 rounded-2xl bg-primary text-white transition-transform active:scale-95"><span class="material-symbols-outlined">cloud_upload</span><span class="text-[10px] font-bold">雲端備份</span></button>
                 <button id="gas-restore-btn" class="flex flex-col items-center gap-1 p-4 rounded-2xl border border-border-light dark:border-border-dark transition-transform active:scale-95"><span class="material-symbols-outlined">cloud_download</span><span class="text-[10px] font-bold">雲端還原</span></button>
             </div>
         </div>
+
         <div class="border-t border-slate-100 dark:border-border-dark pt-6 space-y-4">
             <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">視覺自定義</h4>
             <div class="flex items-center justify-between">
@@ -272,14 +289,6 @@
         });
     }
 
-    async function saveField(data) {
-        const fields = await getAllFields();
-        data.order = fields.length;
-        const transaction = db.transaction(['fields'], 'readwrite');
-        transaction.objectStore('fields').add(data);
-        return new Promise(r => transaction.oncomplete = r);
-    }
-
     async function updateField(data) {
         const transaction = db.transaction(['fields'], 'readwrite');
         transaction.objectStore('fields').put(data);
@@ -290,6 +299,14 @@
         const transaction = db.transaction(['fields'], 'readwrite');
         const store = transaction.objectStore('fields');
         fields.forEach(f => store.put(f));
+        return new Promise(r => transaction.oncomplete = r);
+    }
+
+    async function saveField(data) {
+        const fields = await getAllFields();
+        data.order = fields.length;
+        const transaction = db.transaction(['fields'], 'readwrite');
+        transaction.objectStore('fields').add(data);
         return new Promise(r => transaction.oncomplete = r);
     }
 
@@ -322,7 +339,69 @@
         setTimeout(() => toast.remove(), 2000);
     }
 
-    // --- CR-027/028: Modern Render with Interactivity ---
+    // --- CR-032: Restored Cloud Engine Functions ---
+    async function handleGasBackup() {
+        const url = document.getElementById('gas-url').value.trim();
+        const folder = document.getElementById('gas-folder-name').value.trim() || "DataEntryBackups";
+        const filename = document.getElementById('gas-file-name').value.trim() || "data-entry-backup.json";
+
+        if (!url) return alert("請先設定雲端 GAS URL");
+
+        const btn = document.getElementById('gas-backup-btn');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<div class="spinner mx-auto"></div>';
+        btn.disabled = true;
+
+        try {
+            const fields = await getAllFields();
+            const payload = { folder, filename, content: fields };
+            
+            // 使用 no-cors 以解決 Google Apps Script 重定向引起的 CORS 問題
+            await fetch(url, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify(payload)
+            });
+            showToast("雲端備份請求已發送");
+        } catch (err) {
+            alert("備份出錯: " + err.message);
+        } finally {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    }
+
+    async function handleGasRestore() {
+        const url = document.getElementById('gas-url').value.trim();
+        const folder = document.getElementById('gas-folder-name').value.trim();
+        const filename = document.getElementById('gas-file-name').value.trim();
+
+        if (!url) return alert("請先設定雲端 GAS URL");
+
+        const btn = document.getElementById('gas-restore-btn');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<div class="spinner mx-auto"></div>';
+        btn.disabled = true;
+
+        try {
+            const fullUrl = `${url}?folder=${encodeURIComponent(folder)}&filename=${encodeURIComponent(filename)}`;
+            const res = await fetch(fullUrl);
+            if (!res.ok) throw new Error("還原失敗，請檢查 URL 或檔案路徑");
+            const data = await res.json();
+
+            if (Array.isArray(data)) {
+                for (const item of data) await updateField(item);
+                renderFields(await getAllFields());
+                showToast("雲端還原完成");
+            }
+        } catch (err) {
+            alert("還原失敗: " + err.message);
+        } finally {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    }
+
     function renderFields(fields) {
         const container = document.getElementById('fields-container');
         const totalText = document.getElementById('total-count');
@@ -352,17 +431,13 @@
                             <div class="h-8 w-10 rounded-md bg-gradient-to-br from-yellow-200 to-yellow-500 shadow-sm opacity-90 wallet-drag-handle"></div>
                             <span class="material-symbols-outlined text-white/50 text-[18px]">contactless</span>
                         </div>
-                        
-                        <!-- CR-028: Clickable Title -->
                         <div class="absolute left-1/2 -translate-x-1/2 text-center edit-wallet-trigger px-4 py-1 rounded-lg">
                             <h3 class="text-lg font-extrabold text-white tracking-tight truncate max-w-[150px] uppercase">${wallet.label}</h3>
                         </div>
-
                         <div class="flex gap-2">
                             <div class="p-2 bg-white/10 rounded-xl backdrop-blur-md"><span class="material-symbols-outlined text-white text-[22px]">${wallet.icon || theme.icon}</span></div>
                         </div>
                     </div>
-
                     <div class="relative z-10">
                         <div class="flex justify-between items-center border-t border-white/10 pt-3">
                             <p class="font-mono text-white/40 text-[10px] tracking-[0.2em] uppercase">Security Vault • ${String(wallet.id).slice(-4)}</p>
@@ -384,9 +459,7 @@
                                 </div>
                             </div>
                         `).join('')}
-                        <button class="add-item-btn w-full py-4 rounded-2xl border-2 border-dashed border-slate-200 dark:border-border-dark text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:border-primary transition-all">
-                            + Add Item
-                        </button>
+                        <button class="add-item-btn w-full py-4 rounded-2xl border-2 border-dashed border-slate-200 dark:border-border-dark text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:border-primary transition-all">+ Add Item</button>
                     </div>
                 </div>
             </div>`;
@@ -426,22 +499,16 @@
     const deleteItemBtn = document.getElementById('delete-item-btn');
     let editingContext = null;
 
-    // CR-028/029: Expanded Dialog Logic
     function openAddDialog(context) {
         editingContext = context;
         document.getElementById('field-label').value = '';
         document.getElementById('field-value').value = '';
-        
         const valGroup = document.getElementById('value-input-group');
         const dialogTitle = document.getElementById('dialog-title');
-        
         valGroup.style.display = (context.type === 'new-wallet' || context.type === 'edit-wallet') ? 'none' : 'block';
         deleteItemBtn.classList.add('hidden');
-        deleteItemBtn.innerHTML = `<span class="material-symbols-outlined text-[18px]">delete</span> 刪除項目`;
-
-        if(context.type === 'new-wallet') {
-            dialogTitle.textContent = "建立新錢包";
-        } else if(context.type === 'edit-wallet') {
+        if(context.type === 'new-wallet') { dialogTitle.textContent = "建立新錢包"; }
+        else if(context.type === 'edit-wallet') {
             dialogTitle.textContent = "修改錢包名稱";
             document.getElementById('field-label').value = context.walletData.label;
             deleteItemBtn.classList.remove('hidden');
@@ -452,19 +519,20 @@
             document.getElementById('field-label').value = item.label;
             document.getElementById('field-value').value = item.value;
             deleteItemBtn.classList.remove('hidden');
-        } else {
-            dialogTitle.textContent = "新增內容";
-        }
+        } else { dialogTitle.textContent = "新增內容"; }
         addDialog.showModal();
     }
 
     window.onload = async () => {
         await initDB();
         const settings = await getSettings();
+        const shell = document.getElementById('app-shell');
         if(settings) {
-            if(settings.backgroundImage && settings.backgroundImage !== 'none') document.body.style.setProperty('--bg-image', `url(${settings.backgroundImage})`);
-            document.body.style.setProperty('--bg-size', `${settings.backgroundScale || 100}%`);
+            if(settings.backgroundImage && settings.backgroundImage !== 'none') shell.style.setProperty('--bg-image', `url(${settings.backgroundImage})`);
+            shell.style.setProperty('--bg-size', `${settings.backgroundScale || 100}%`);
             if(settings.gasUrl) document.getElementById('gas-url').value = settings.gasUrl;
+            if(settings.gasFolder) document.getElementById('gas-folder-name').value = settings.gasFolder;
+            if(settings.gasFile) document.getElementById('gas-file-name').value = settings.gasFile;
             if(settings.exportPrefix) document.getElementById('export-prefix').value = settings.exportPrefix;
         }
         renderFields(await getAllFields());
@@ -475,53 +543,32 @@
     document.getElementById('dialog-close-btn').onclick = () => addDialog.close();
     document.getElementById('dialog-cancel-btn').onclick = () => addDialog.close();
 
+    // CR-032: Bind Cloud Buttons
+    document.getElementById('gas-backup-btn').onclick = handleGasBackup;
+    document.getElementById('gas-restore-btn').onclick = handleGasRestore;
+
     document.getElementById('dialog-save-btn').onclick = async () => {
         const label = document.getElementById('field-label').value.trim();
         const value = document.getElementById('field-value').value.trim();
         if(!label) return;
-
-        if(editingContext.type === 'new-wallet') {
-            await saveField({ type: 'wallet', label, items: [] });
-        } else if(editingContext.type === 'edit-wallet') {
-            const w = editingContext.walletData;
-            w.label = label;
-            await updateField(w);
-        } else if(editingContext.type === 'add-item') {
-            const w = editingContext.walletData;
-            w.items.push({ id: Date.now(), label, value });
-            await updateField(w);
-        } else if(editingContext.type === 'edit-item') {
-            const w = editingContext.walletData;
-            const i = w.items.find(x => x.id === editingContext.itemId);
-            i.label = label; i.value = value;
-            await updateField(w);
-        }
-        addDialog.close();
-        renderFields(await getAllFields());
-        showToast("儲存成功");
+        if(editingContext.type === 'new-wallet') await saveField({ type: 'wallet', label, items: [] });
+        else if(editingContext.type === 'edit-wallet') { const w = editingContext.walletData; w.label = label; await updateField(w); }
+        else if(editingContext.type === 'add-item') { const w = editingContext.walletData; w.items.push({ id: Date.now(), label, value }); await updateField(w); }
+        else if(editingContext.type === 'edit-item') { const w = editingContext.walletData; const i = w.items.find(x => x.id === editingContext.itemId); i.label = label; i.value = value; await updateField(w); }
+        addDialog.close(); renderFields(await getAllFields()); showToast("儲存成功");
     };
 
     deleteItemBtn.onclick = async () => {
         if(!confirm("確定要永久刪除？")) return;
-        
-        if(editingContext.type === 'edit-wallet') {
-            await deleteField(editingContext.walletData.id);
-        } else {
-            const w = editingContext.walletData;
-            w.items = w.items.filter(i => i.id !== editingContext.itemId);
-            await updateField(w);
-        }
-        addDialog.close();
-        renderFields(await getAllFields());
-        showToast("已刪除");
+        if(editingContext.type === 'edit-wallet') await deleteField(editingContext.walletData.id);
+        else { const w = editingContext.walletData; w.items = w.items.filter(i => i.id !== editingContext.itemId); await updateField(w); }
+        addDialog.close(); renderFields(await getAllFields()); showToast("已刪除");
     };
 
     document.addEventListener('click', async e => {
         const t = e.target;
         if(t.closest('.wallet-drag-handle') || t.closest('.item-drag-handle')) return;
         if(t.closest('#add-wallet-btn-top')) openAddDialog({ type: 'new-wallet' });
-        
-        // CR-028: Handle Wallet Edit Trigger
         const editTrigger = t.closest('.edit-wallet-trigger');
         if(editTrigger) {
             e.stopPropagation();
@@ -529,7 +576,6 @@
             openAddDialog({ type: 'edit-wallet', walletData: data });
             return;
         }
-
         const wh = t.closest('.wallet-header');
         if(wh) {
             const card = wh.closest('.wallet-card');
@@ -537,41 +583,38 @@
             document.querySelectorAll('.wallet-card.expanded').forEach(c => c.classList.remove('expanded'));
             if(!exp) card.classList.add('expanded');
         }
-
         if(t.closest('.add-item-btn')) {
             const data = JSON.parse(decodeURIComponent(t.closest('.wallet-card').dataset.walletJson));
             openAddDialog({ type: 'add-item', walletData: data });
         }
-        
-        if(t.closest('.copy-zone')) {
-            navigator.clipboard.writeText(t.closest('.copy-zone').dataset.copyValue).then(() => showToast("已複製至剪貼簿"));
-        } else if(t.closest('.edit-zone')) {
+        if(t.closest('.copy-zone')) navigator.clipboard.writeText(t.closest('.copy-zone').dataset.copyValue).then(() => showToast("已複製至剪貼簿"));
+        else if(t.closest('.edit-zone')) {
             const card = t.closest('.item-card');
             const data = JSON.parse(decodeURIComponent(t.closest('.wallet-card').dataset.walletJson));
             openAddDialog({ type: 'edit-item', walletData: data, itemId: parseInt(card.dataset.itemId) });
         }
     });
 
-    // CR-029: Custom Filename Export
     document.getElementById('icloud-backup-btn').onclick = async () => {
         const settings = await getSettings() || {};
         const prefix = settings.exportPrefix || 'vault';
         const data = await getAllFields();
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
         const name = `${prefix}-${new Date().toISOString().slice(0,10)}.json`;
-        if(navigator.canShare) {
-            await navigator.share({ files: [new File([blob], name, {type: 'application/json'})], title: 'Vault Backup' });
-        } else {
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
-        }
+        if(navigator.canShare) await navigator.share({ files: [new File([blob], name, {type: 'application/json'})], title: 'Vault Backup' });
+        else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); }
     };
 
-    // Save Export Prefix on change
-    document.getElementById('export-prefix').onchange = async (e) => {
-        let s = await getSettings() || {};
-        s.exportPrefix = e.target.value;
-        await saveSettings(s);
-    };
+    // CR-032: Enhanced Persistence Listeners
+    const settingsFields = ['export-prefix', 'gas-url', 'gas-folder-name', 'gas-file-name'];
+    settingsFields.forEach(id => {
+        document.getElementById(id).onchange = async (e) => {
+            let s = await getSettings() || {};
+            const key = id.replace(/-([a-z])/g, (g) => g[1].toUpperCase()); // kebab to camel
+            s[key === 'exportPrefix' ? 'exportPrefix' : (key === 'gasUrl' ? 'gasUrl' : (key === 'gasFolderName' ? 'gasFolder' : 'gasFile'))] = e.target.value;
+            await saveSettings(s);
+        };
+    });
 
     document.getElementById('import-btn-trigger').onclick = () => document.getElementById('import-file').click();
     document.getElementById('import-file').onchange = e => {
@@ -579,27 +622,27 @@
         reader.onload = async evt => {
             const data = JSON.parse(evt.target.result);
             for(const x of data) await updateField(x);
-            renderFields(await getAllFields());
-            showToast("數據導入完成");
+            renderFields(await getAllFields()); showToast("數據導入完成");
         };
         reader.readAsText(e.target.files[0]);
     };
 
     document.getElementById('bg-upload').onchange = e => {
         const reader = new FileReader();
+        const shell = document.getElementById('app-shell');
         reader.onload = async evt => {
             let s = await getSettings() || {}; s.backgroundImage = evt.target.result;
-            await saveSettings(s); document.body.style.setProperty('--bg-image', `url(${evt.target.result})`);
+            await saveSettings(s); shell.style.setProperty('--bg-image', `url(${evt.target.result})`);
         };
         reader.readAsDataURL(e.target.files[0]);
     };
     document.getElementById('bg-scale').oninput = e => {
         document.getElementById('scale-val').textContent = e.target.value + '%';
-        document.body.style.setProperty('--bg-size', e.target.value + '%');
+        document.getElementById('app-shell').style.setProperty('--bg-size', e.target.value + '%');
     };
     document.getElementById('reset-bg-btn').onclick = async () => {
         let s = await getSettings() || {}; s.backgroundImage = 'none';
-        await saveSettings(s); document.body.style.setProperty('--bg-image', 'none');
+        await saveSettings(s); document.getElementById('app-shell').style.setProperty('--bg-image', 'none');
     };
     document.getElementById('paste-btn').onclick = async () => {
         const text = await navigator.clipboard.readText();
