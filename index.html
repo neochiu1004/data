@@ -406,7 +406,15 @@
         const container = document.getElementById('fields-container');
         const totalText = document.getElementById('total-count');
         let totalItemsCount = 0;
-        
+
+        walletCache.clear();
+        if (walletSortable) {
+            walletSortable.destroy();
+            walletSortable = null;
+        }
+        itemSortables.forEach(sortable => sortable.destroy());
+        itemSortables.clear();
+
         container.innerHTML = fields.length === 0 ? `<div class="mt-20 opacity-20 text-center"><span class="material-symbols-outlined text-6xl">inventory_2</span><p class="text-xs font-bold uppercase mt-2 tracking-widest">No Vaults</p></div>` : '';
 
         const themes = [
@@ -420,10 +428,11 @@
             const theme = themes[idx % themes.length];
             const items = wallet.items || [];
             totalItemsCount += items.length;
+            walletCache.set(wallet.id, wallet);
 
             const walletHtml = `
             <div class="wallet-card group relative w-full rounded-3xl bg-gradient-to-br from-${theme.from} via-${theme.via} to-${theme.to} shadow-card border-t border-white/20 overflow-hidden" 
-                 data-id="${wallet.id}" data-wallet-json="${encodeURIComponent(JSON.stringify(wallet))}" style="--z-index: ${idx}">
+                 data-id="${wallet.id}" style="--z-index: ${idx}">
                 <div class="wallet-header relative h-56 flex flex-col justify-between p-6 cursor-pointer select-none">
                     <div class="absolute inset-0 bg-white/5 opacity-10 pointer-events-none"></div>
                     <div class="flex justify-between items-center relative z-10 w-full">
@@ -468,7 +477,7 @@
 
         totalText.textContent = totalItemsCount;
 
-        new Sortable(container, {
+        walletSortable = new Sortable(container, {
             animation: 250, handle: '.wallet-drag-handle', ghostClass: 'sortable-ghost',
             onEnd: async () => {
                 const current = await getAllFields();
@@ -478,7 +487,7 @@
             }
         });
         document.querySelectorAll('.item-list-container').forEach(list => {
-            new Sortable(list, {
+            const sortable = new Sortable(list, {
                 animation: 200, handle: '.item-drag-handle', ghostClass: 'sortable-ghost',
                 onEnd: async () => {
                     const walletId = parseInt(list.dataset.walletId);
@@ -491,6 +500,7 @@
                     }
                 }
             });
+            itemSortables.set(list.dataset.walletId, sortable);
         });
     }
 
@@ -498,6 +508,9 @@
     const settingsDialog = document.getElementById('settings-dialog');
     const deleteItemBtn = document.getElementById('delete-item-btn');
     let editingContext = null;
+    let walletSortable = null;
+    const itemSortables = new Map();
+    const walletCache = new Map();
 
     function openAddDialog(context) {
         editingContext = context;
@@ -572,7 +585,8 @@
         const editTrigger = t.closest('.edit-wallet-trigger');
         if(editTrigger) {
             e.stopPropagation();
-            const data = JSON.parse(decodeURIComponent(editTrigger.closest('.wallet-card').dataset.walletJson));
+            const walletId = parseInt(editTrigger.closest('.wallet-card').dataset.id);
+            const data = walletCache.get(walletId);
             openAddDialog({ type: 'edit-wallet', walletData: data });
             return;
         }
@@ -584,13 +598,15 @@
             if(!exp) card.classList.add('expanded');
         }
         if(t.closest('.add-item-btn')) {
-            const data = JSON.parse(decodeURIComponent(t.closest('.wallet-card').dataset.walletJson));
+            const walletId = parseInt(t.closest('.wallet-card').dataset.id);
+            const data = walletCache.get(walletId);
             openAddDialog({ type: 'add-item', walletData: data });
         }
         if(t.closest('.copy-zone')) navigator.clipboard.writeText(t.closest('.copy-zone').dataset.copyValue).then(() => showToast("已複製至剪貼簿"));
         else if(t.closest('.edit-zone')) {
             const card = t.closest('.item-card');
-            const data = JSON.parse(decodeURIComponent(t.closest('.wallet-card').dataset.walletJson));
+            const walletId = parseInt(t.closest('.wallet-card').dataset.id);
+            const data = walletCache.get(walletId);
             openAddDialog({ type: 'edit-item', walletData: data, itemId: parseInt(card.dataset.itemId) });
         }
     });
