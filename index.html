@@ -1,670 +1,495 @@
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
-<!-- CR-001: iOS PWA Compatibility Tags -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Data Entry">
-<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFhAJ/wlseKgAAAABJRU5ErkJggg==">
-
-<title>Digital Wallet Dashboard</title>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<!-- CR-019: SortableJS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-
-<script id="tailwind-config">
-    tailwind.config = {
-        darkMode: "class",
-        theme: {
-            extend: {
-                colors: {
-                    "primary": "#2463eb",
-                    "background-light": "#f6f6f8",
-                    "background-dark": "#0f172a",
-                    "surface-light": "#ffffff",
-                    "surface-dark": "#1e293b",
-                    "text-main-light": "#0f172a",
-                    "text-main-dark": "#f8fafc",
-                    "text-sub-light": "#64748b",
-                    "text-sub-dark": "#94a3b8",
-                    "border-light": "#e2e8f0",
-                    "border-dark": "#334155",
-                },
-                fontFamily: {
-                    "display": ["Inter", "Noto Sans", "sans-serif"],
-                    "mono": ["JetBrains Mono", "monospace"],
-                },
-                borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "3xl": "1.5rem", "full": "9999px" },
-                boxShadow: {
-                    'card': '0 10px 40px -10px rgba(0,0,0,0.3)',
-                    'card-hover': '0 20px 50px -10px rgba(0,0,0,0.4)',
-                }
-            },
-        },
-    }
-</script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pendulum Wave Synchronization</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
 <style>
-    /* CR-030/031: Layout & Background Scoping */
-    html, body {
-        overscroll-behavior-y: none;
+    :root {
+        color-scheme: light;
+        --bg: #f4f6fb;
+        --bg-alt: #ffffff;
+        --surface: #ffffff;
+        --surface-strong: #ecf0ff;
+        --text: #0f172a;
+        --text-muted: #52607a;
+        --primary: #4f46e5;
+        --accent: #06b6d4;
+        --border: #dbe1ee;
+        --shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+    }
+
+    :root.dark {
+        color-scheme: dark;
+        --bg: #0b0f1b;
+        --bg-alt: #111827;
+        --surface: #111827;
+        --surface-strong: #1f2937;
+        --text: #f8fafc;
+        --text-muted: #94a3b8;
+        --primary: #818cf8;
+        --accent: #22d3ee;
+        --border: #243145;
+        --shadow: 0 32px 80px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
         min-height: 100vh;
-        background-color: #e5e7eb;
+        background: radial-gradient(circle at top, rgba(99, 102, 241, 0.16), transparent 55%),
+            radial-gradient(circle at 20% 20%, rgba(34, 211, 238, 0.2), transparent 40%),
+            var(--bg);
+        font-family: "Space Grotesk", system-ui, sans-serif;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 20px;
     }
 
-    #app-shell {
-        --bg-image: none;
-        --bg-size: 100%;
-        --main-opacity: 1;
-        background-image: var(--bg-image);
-        background-size: var(--bg-size);
-        background-position: center;
-        background-repeat: no-repeat;
-        background-attachment: scroll;
-    }
-    
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    main { -webkit-overflow-scrolling: touch; }
-
-    /* Wallet Stack Spacing Logic */
-    .wallet-card { 
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
-        will-change: transform, margin;
-        z-index: var(--z-index);
-    }
-    .wallet-card.expanded { 
-        margin-bottom: 2rem; 
-        transform: translateY(-10px);
-        z-index: 50 !important;
-    }
-    .wallet-card.expanded ~ .wallet-card { 
-        transform: translateY(0) !important; 
-        margin-top: 1rem !important; 
+    .app {
+        width: min(1080px, 100%);
+        display: grid;
+        gap: 24px;
+        grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+        align-items: stretch;
     }
 
-    .edit-wallet-trigger:active { opacity: 0.6; transform: scale(0.95); transition: all 0.1s; }
-    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-    
-    dialog::backdrop { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); }
-    @keyframes fade-in-out {
-        0% { opacity: 0; transform: translateY(20px); }
-        10% { opacity: 1; transform: translateY(0); }
-        90% { opacity: 1; transform: translateY(0); }
-        100% { opacity: 0; transform: translateY(-20px); }
+    header {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
     }
-    .toast-message { animation: fade-in-out 2s ease forwards; }
 
-    .wallet-content {
-        transition: max-height 0.4s ease-in-out, opacity 0.3s ease;
-        max-height: 0; opacity: 0; overflow: hidden;
+    .title {
+        display: grid;
+        gap: 6px;
     }
-    .wallet-card.expanded .wallet-content { max-height: 2000px; opacity: 1; }
-    
-    .spinner {
-        border: 2px solid rgba(255, 255, 255, 0.3); border-left-color: #ffffff; border-radius: 50%;
-        width: 16px; height: 16px; animation: spin 1s linear infinite;
+
+    .title h1 {
+        font-size: clamp(1.8rem, 2vw + 1.4rem, 2.8rem);
+        letter-spacing: -0.03em;
     }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .sortable-ghost { opacity: 0.1; }
+
+    .title p {
+        color: var(--text-muted);
+        max-width: 540px;
+    }
+
+    .pill {
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 600;
+        background: var(--surface-strong);
+        color: var(--primary);
+        border: 1px solid transparent;
+    }
+
+    .panel {
+        background: var(--surface);
+        border-radius: 24px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        padding: 20px;
+    }
+
+    .canvas-panel {
+        display: grid;
+        gap: 16px;
+    }
+
+    .canvas-wrap {
+        background: linear-gradient(140deg, rgba(79, 70, 229, 0.12), rgba(34, 211, 238, 0.05)),
+            var(--bg-alt);
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        padding: 16px;
+        min-height: 420px;
+        display: grid;
+    }
+
+    canvas {
+        width: 100%;
+        height: 100%;
+    }
+
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+    }
+
+    .stat {
+        background: var(--surface-strong);
+        border-radius: 16px;
+        padding: 12px 14px;
+        display: grid;
+        gap: 4px;
+        border: 1px solid transparent;
+    }
+
+    .stat span {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .stat strong {
+        font-size: 1.1rem;
+    }
+
+    .controls {
+        display: grid;
+        gap: 16px;
+    }
+
+    .control-group {
+        display: grid;
+        gap: 8px;
+    }
+
+    label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    input[type="range"] {
+        width: 100%;
+        accent-color: var(--primary);
+    }
+
+    .buttons {
+        display: grid;
+        gap: 10px;
+    }
+
+    button {
+        border: none;
+        font: inherit;
+        border-radius: 14px;
+        padding: 12px 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 12px 25px rgba(79, 70, 229, 0.3);
+    }
+
+    button.secondary {
+        background: var(--surface-strong);
+        color: var(--text);
+        box-shadow: none;
+        border: 1px solid var(--border);
+    }
+
+    button:active {
+        transform: translateY(1px) scale(0.99);
+    }
+
+    .toggle {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        font-size: 0.85rem;
+        cursor: pointer;
+    }
+
+    .toggle span {
+        font-weight: 600;
+    }
+
+    .note {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        line-height: 1.4;
+    }
+
+    @media (max-width: 900px) {
+        .app {
+            grid-template-columns: 1fr;
+        }
+
+        header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
 </style>
 </head>
-<body class="text-text-main-light dark:text-text-main-dark selection:bg-primary/20 transition-colors duration-200">
-
-<div id="app-shell" class="relative flex flex-col overflow-hidden w-full h-screen sm:max-w-md sm:mx-auto sm:h-[85vh] sm:my-8 sm:rounded-3xl sm:shadow-2xl sm:border sm:border-border-light sm:dark:border-border-dark bg-background-light dark:bg-background-dark">
-    
-    <!-- Header -->
-    <header class="sticky top-0 z-[60] bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-xl pt-12 px-6 pb-4">
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-2xl font-extrabold tracking-tight">我的錢包</h1>
-                <div class="flex items-center gap-1.5 mt-1">
-                    <span class="relative flex h-2 w-2">
-                        <span id="sync-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    <p class="text-xs font-medium text-text-sub-light dark:text-text-sub-dark uppercase tracking-tighter">Vault Encrypted</p>
-                </div>
-            </div>
-            <button id="settings-btn" class="flex items-center justify-center rounded-full w-10 h-10 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark hover:bg-gray-100 dark:hover:bg-gray-800 transition-all shadow-sm">
-                <span class="material-symbols-outlined text-[20px]">settings</span>
-            </button>
+<body>
+<div class="app">
+    <header>
+        <div class="title">
+            <span class="pill">Pendulum Wave Lab</span>
+            <h1>Pendulum Wave Synchronization</h1>
+            <p>Each bob swings at its own period, but every few seconds they return to perfect alignment. Adjust the tempo and feel the resonance.</p>
         </div>
+        <button id="theme-toggle" class="toggle" aria-label="Toggle dark mode">
+            <span id="theme-icon">☾</span>
+            <span id="theme-label">Dark mode</span>
+        </button>
     </header>
 
-    <main class="flex-1 overflow-y-auto no-scrollbar pb-12">
-        <div class="px-6 pt-6 pb-8">
-            <div class="flex items-end justify-between">
-                <div>
-                    <p class="text-xs font-semibold uppercase tracking-wider text-text-sub-light dark:text-text-sub-dark mb-1">已保護資產</p>
-                    <div class="flex items-baseline gap-2">
-                        <h2 id="total-count" class="text-5xl font-bold tracking-tighter">0</h2>
-                        <span class="text-base font-medium text-text-sub-light dark:text-text-sub-dark">項目</span>
-                    </div>
-                </div>
-                <button id="add-wallet-btn-top" class="group relative overflow-hidden rounded-full bg-text-main-light dark:bg-white text-surface-light dark:text-black pl-4 pr-6 py-3 shadow-lg transition-transform active:scale-95">
-                    <div class="relative z-10 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-[22px]">add_circle</span>
-                        <span class="font-bold text-sm">快速新增</span>
-                    </div>
-                </button>
+    <section class="panel canvas-panel">
+        <div class="canvas-wrap">
+            <canvas id="pendulum-canvas" aria-label="Pendulum wave animation"></canvas>
+        </div>
+        <div class="stats">
+            <div class="stat">
+                <span>Sync interval</span>
+                <strong id="sync-interval">--</strong>
+            </div>
+            <div class="stat">
+                <span>Active period</span>
+                <strong id="period-display">--</strong>
+            </div>
+            <div class="stat">
+                <span>Amplitude</span>
+                <strong id="amplitude-display">--</strong>
+            </div>
+            <div class="stat">
+                <span>Oscillators</span>
+                <strong id="count-display">--</strong>
             </div>
         </div>
+    </section>
 
-        <div id="fields-container" class="flex flex-col items-center px-4 -space-y-24 pb-12 isolate">
-            <!-- Content Injected via JS -->
+    <aside class="panel controls">
+        <div class="control-group">
+            <label for="count">Pendulum count <span id="count-value">15</span></label>
+            <input id="count" type="range" min="8" max="24" value="15" />
         </div>
-
-        <div class="mt-12 flex flex-col items-center justify-center gap-2 opacity-60">
-            <div class="p-2 rounded-full bg-surface-light dark:bg-surface-dark shadow-sm border border-border-light dark:border-border-dark">
-                <span class="material-symbols-outlined text-primary text-[20px]">lock</span>
-            </div>
-            <p class="text-text-sub-light dark:text-text-sub-dark text-[10px] font-bold tracking-widest uppercase">End-to-End Encrypted</p>
+        <div class="control-group">
+            <label for="amplitude">Swing amplitude <span id="amplitude-value">18°</span></label>
+            <input id="amplitude" type="range" min="8" max="30" value="18" />
         </div>
-    </main>
+        <div class="control-group">
+            <label for="interval">Sync interval <span id="interval-value">20.0s</span></label>
+            <input id="interval" type="range" min="8" max="30" value="20" step="0.5" />
+        </div>
+        <div class="control-group">
+            <label for="tempo">Tempo multiplier <span id="tempo-value">1.0×</span></label>
+            <input id="tempo" type="range" min="0.5" max="2" value="1" step="0.05" />
+        </div>
+        <div class="buttons">
+            <button id="play-btn">Pause</button>
+            <button id="reset-btn" class="secondary">Reset to sync</button>
+        </div>
+        <p class="note">Tip: Shorter sync intervals make the wave pulse faster, while more pendulums reveal denser interference patterns.</p>
+    </aside>
 </div>
 
-<!-- Add/Edit Dialog -->
-<dialog id="add-dialog" class="rounded-3xl shadow-2xl p-0 w-full max-w-sm bg-white dark:bg-surface-dark overflow-hidden border-none">
-    <div class="px-6 py-5 border-b border-slate-100 dark:border-border-dark flex justify-between items-center bg-slate-50/50 dark:bg-black/20">
-        <h3 id="dialog-title" class="font-bold text-slate-800 dark:text-white">編輯資料</h3>
-        <button id="dialog-close-btn" class="text-slate-400 hover:text-slate-600"><span class="material-symbols-outlined">close</span></button>
-    </div>
-    <div class="p-6 space-y-5">
-        <div>
-            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">名稱 (Label)</label>
-            <input type="text" id="field-label" class="w-full rounded-xl border-slate-200 dark:border-border-dark dark:bg-background-dark text-sm focus:ring-primary focus:border-primary" placeholder="名稱">
-        </div>
-        <div id="value-input-group">
-            <div class="flex justify-between items-center mb-1.5">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">內容 (Content)</label>
-                <button id="paste-btn" class="text-[10px] font-bold text-primary px-2 py-1 bg-blue-50 dark:bg-primary/10 rounded-lg uppercase">Paste</button>
-            </div>
-            <textarea id="field-value" rows="3" class="w-full rounded-xl border-slate-200 dark:border-border-dark dark:bg-background-dark text-sm focus:ring-primary focus:border-primary" placeholder="敏感內容..."></textarea>
-        </div>
-    </div>
-    <div class="px-6 py-5 bg-slate-50 dark:bg-black/20 flex justify-between items-center">
-        <button id="delete-item-btn" class="hidden text-rose-500 font-bold text-[10px] flex items-center gap-1 tracking-widest uppercase"><span class="material-symbols-outlined text-[18px]">delete</span> Delete</button>
-        <div class="flex gap-4 ml-auto">
-            <button id="dialog-cancel-btn" class="text-sm font-bold text-slate-400">Cancel</button>
-            <button id="dialog-save-btn" class="px-6 py-2.5 rounded-full bg-primary text-white text-sm font-bold shadow-lg shadow-blue-500/30 transition-transform active:scale-95">Save</button>
-        </div>
-    </div>
-</dialog>
-
-<!-- Settings Dialog (Restored GAS UI) -->
-<dialog id="settings-dialog" class="rounded-3xl shadow-2xl p-0 w-full max-w-sm bg-white dark:bg-surface-dark overflow-hidden border-none">
-    <div class="px-6 py-5 border-b border-slate-100 dark:border-border-dark flex justify-between items-center bg-slate-50/50 dark:bg-black/20">
-        <h3 class="font-bold text-slate-800 dark:text-white">系統設定</h3>
-        <button id="settings-close-btn" class="text-slate-400 hover:text-slate-600"><span class="material-symbols-outlined">close</span></button>
-    </div>
-    <div class="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
-        
-        <div class="space-y-4">
-            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">備份與導出設定</h4>
-            <div>
-                <label class="block text-[9px] font-bold text-slate-400 mb-1 tracking-widest uppercase">預設備份檔名前綴</label>
-                <input type="text" id="export-prefix" class="w-full rounded-xl text-xs border-slate-200 dark:border-border-dark dark:bg-background-dark" placeholder="例如：my-vault">
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <button id="icloud-backup-btn" class="flex flex-col items-center gap-1 p-4 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-transform active:scale-95"><span class="material-symbols-outlined">ios_share</span><span class="text-[10px] font-bold">導出 JSON</span></button>
-                <button id="import-btn-trigger" class="flex flex-col items-center gap-1 p-4 rounded-2xl border border-border-light dark:border-border-dark transition-transform active:scale-95"><span class="material-symbols-outlined">upload_file</span><span class="text-[10px] font-bold">導入 JSON</span></button>
-                <input type="file" id="import-file" class="hidden" accept=".json">
-            </div>
-        </div>
-
-        <!-- CR-032: Restored Cloud Backup UI -->
-        <div class="border-t border-slate-100 dark:border-border-dark pt-6 space-y-4">
-            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">雲端備份 (GAS Bridge)</h4>
-            <div>
-                <label class="block text-[9px] font-bold text-slate-400 mb-1 tracking-widest uppercase">Google Apps Script URL</label>
-                <input type="text" id="gas-url" class="w-full rounded-xl text-xs border-slate-200 dark:border-border-dark dark:bg-background-dark" placeholder="https://script.google.com/...">
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-[9px] font-bold text-slate-400 mb-1 tracking-widest uppercase">雲端資料夾</label>
-                    <input type="text" id="gas-folder-name" class="w-full rounded-xl text-xs border-slate-200 dark:border-border-dark dark:bg-background-dark" placeholder="Backups">
-                </div>
-                <div>
-                    <label class="block text-[9px] font-bold text-slate-400 mb-1 tracking-widest uppercase">雲端檔名</label>
-                    <input type="text" id="gas-file-name" class="w-full rounded-xl text-xs border-slate-200 dark:border-border-dark dark:bg-background-dark" placeholder="vault.json">
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <button id="gas-backup-btn" class="flex flex-col items-center gap-1 p-4 rounded-2xl bg-primary text-white transition-transform active:scale-95"><span class="material-symbols-outlined">cloud_upload</span><span class="text-[10px] font-bold">雲端備份</span></button>
-                <button id="gas-restore-btn" class="flex flex-col items-center gap-1 p-4 rounded-2xl border border-border-light dark:border-border-dark transition-transform active:scale-95"><span class="material-symbols-outlined">cloud_download</span><span class="text-[10px] font-bold">雲端還原</span></button>
-            </div>
-        </div>
-
-        <div class="border-t border-slate-100 dark:border-border-dark pt-6 space-y-4">
-            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">視覺自定義</h4>
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-medium">背景比例</span>
-                <span id="scale-val" class="text-[10px] font-bold">100%</span>
-            </div>
-            <input type="range" id="bg-scale" min="50" max="200" value="100" class="w-full">
-            <label class="block w-full py-4 text-center rounded-2xl border-2 border-dashed border-slate-200 dark:border-border-dark text-[10px] font-bold text-slate-400 cursor-pointer">
-                更換背景圖
-                <input type="file" id="bg-upload" class="hidden" accept="image/*">
-            </label>
-            <button id="reset-bg-btn" class="w-full text-center text-[10px] font-bold text-rose-500 uppercase tracking-widest">Clear Background</button>
-        </div>
-    </div>
-</dialog>
-
-<div id="toast-container" class="fixed bottom-12 left-1/2 -translate-x-1/2 z-[100] pointer-events-none"></div>
-
 <script>
-    const DB_NAME = 'LegacyDataDB';
-    const DB_VERSION = 2;
-    let db;
+    const canvas = document.getElementById('pendulum-canvas');
+    const ctx = canvas.getContext('2d');
+    const syncIntervalEl = document.getElementById('sync-interval');
+    const periodDisplay = document.getElementById('period-display');
+    const amplitudeDisplay = document.getElementById('amplitude-display');
+    const countDisplay = document.getElementById('count-display');
 
-    function initDB() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
-            request.onerror = () => reject('DB Error');
-            request.onupgradeneeded = event => {
-                const db = event.target.result;
-                if (!db.objectStoreNames.contains('fields')) db.createObjectStore('fields', { keyPath: 'id', autoIncrement: true });
-                if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'key' });
+    const countInput = document.getElementById('count');
+    const amplitudeInput = document.getElementById('amplitude');
+    const intervalInput = document.getElementById('interval');
+    const tempoInput = document.getElementById('tempo');
+
+    const countValue = document.getElementById('count-value');
+    const amplitudeValue = document.getElementById('amplitude-value');
+    const intervalValue = document.getElementById('interval-value');
+    const tempoValue = document.getElementById('tempo-value');
+
+    const playBtn = document.getElementById('play-btn');
+    const resetBtn = document.getElementById('reset-btn');
+
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const themeLabel = document.getElementById('theme-label');
+
+    const g = 9.81;
+    let pendulums = [];
+    let startTime = performance.now();
+    let paused = false;
+    let pauseStart = 0;
+    let accumulatedPause = 0;
+
+    function setTheme(mode) {
+        document.documentElement.classList.toggle('dark', mode === 'dark');
+        themeIcon.textContent = mode === 'dark' ? '☀' : '☾';
+        themeLabel.textContent = mode === 'dark' ? 'Light mode' : 'Dark mode';
+        localStorage.setItem('theme', mode);
+    }
+
+    const storedTheme = localStorage.getItem('theme');
+    if (storedTheme) {
+        setTheme(storedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        setTheme('dark');
+    }
+
+    themeToggle.addEventListener('click', () => {
+        const isDark = document.documentElement.classList.contains('dark');
+        setTheme(isDark ? 'light' : 'dark');
+    });
+
+    function resizeCanvas() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const scale = window.devicePixelRatio || 1;
+        canvas.width = rect.width * scale;
+        canvas.height = rect.height * scale;
+        ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    }
+
+    function buildPendulums() {
+        const count = Number(countInput.value);
+        const interval = Number(intervalInput.value);
+        const minPeriod = interval / (count + 1);
+        pendulums = Array.from({ length: count }, (_, index) => {
+            const period = interval / (count - index);
+            const length = g * Math.pow(period / (2 * Math.PI), 2);
+            return {
+                index,
+                period,
+                length
             };
-            request.onsuccess = event => { db = event.target.result; resolve(db); };
+        });
+        syncIntervalEl.textContent = `${interval.toFixed(1)}s`;
+        periodDisplay.textContent = `${minPeriod.toFixed(2)}s → ${interval.toFixed(2)}s`;
+        amplitudeDisplay.textContent = `${amplitudeInput.value}°`;
+        countDisplay.textContent = String(count);
+        countValue.textContent = String(count);
+    }
+
+    function draw(now) {
+        if (!paused) {
+            const t = (now - startTime - accumulatedPause) / 1000;
+            const tempo = Number(tempoInput.value);
+            renderScene(t * tempo);
+        } else {
+            const t = (pauseStart - startTime - accumulatedPause) / 1000;
+            renderScene(t * Number(tempoInput.value));
+        }
+        requestAnimationFrame(draw);
+    }
+
+    function renderScene(t) {
+        const { width, height } = canvas.getBoundingClientRect();
+        ctx.clearRect(0, 0, width, height);
+
+        const margin = 48;
+        const top = 30;
+        const spacing = (width - margin * 2) / (pendulums.length - 1 || 1);
+        const maxLength = height - 120;
+        const maxPhysicsLength = Math.max(...pendulums.map(p => p.length));
+
+        pendulums.forEach((pendulum, idx) => {
+            const x = margin + spacing * idx;
+            const lengthScale = maxLength / maxPhysicsLength;
+            const length = pendulum.length * lengthScale;
+            const amplitude = (Number(amplitudeInput.value) * Math.PI) / 180;
+            const angle = amplitude * Math.cos((2 * Math.PI * t) / pendulum.period);
+
+            const bobX = x + Math.sin(angle) * length;
+            const bobY = top + Math.cos(angle) * length;
+
+            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border');
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.moveTo(x, top);
+            ctx.lineTo(bobX, bobY);
+            ctx.stroke();
+
+            const gradient = ctx.createRadialGradient(bobX, bobY, 2, bobX, bobY, 12);
+            gradient.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue('--accent'));
+            gradient.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue('--primary'));
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(bobX, bobY, 8.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-muted');
+            ctx.font = '600 10px "JetBrains Mono", monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${pendulum.period.toFixed(2)}s`, x, height - 18);
         });
     }
 
-    async function getAllFields() {
-        return new Promise((resolve) => {
-            const transaction = db.transaction(['fields'], 'readonly');
-            const request = transaction.objectStore('fields').getAll();
-            request.onsuccess = () => {
-                const results = request.result;
-                results.sort((a, b) => (a.order || 0) - (b.order || 0));
-                resolve(results);
-            };
-        });
-    }
-
-    async function updateField(data) {
-        const transaction = db.transaction(['fields'], 'readwrite');
-        transaction.objectStore('fields').put(data);
-        return new Promise(r => transaction.oncomplete = r);
-    }
-
-    async function updateAllFields(fields) {
-        const transaction = db.transaction(['fields'], 'readwrite');
-        const store = transaction.objectStore('fields');
-        fields.forEach(f => store.put(f));
-        return new Promise(r => transaction.oncomplete = r);
-    }
-
-    async function saveField(data) {
-        const fields = await getAllFields();
-        data.order = fields.length;
-        const transaction = db.transaction(['fields'], 'readwrite');
-        transaction.objectStore('fields').add(data);
-        return new Promise(r => transaction.oncomplete = r);
-    }
-
-    async function deleteField(id) {
-        const transaction = db.transaction(['fields'], 'readwrite');
-        transaction.objectStore('fields').delete(id);
-        return new Promise(r => transaction.oncomplete = r);
-    }
-
-    async function getSettings() {
-        return new Promise((resolve) => {
-            const transaction = db.transaction(['settings'], 'readonly');
-            const request = transaction.objectStore('settings').get('app_config');
-            request.onsuccess = () => resolve(request.result ? request.result.value : null);
-        });
-    }
-
-    async function saveSettings(config) {
-        const transaction = db.transaction(['settings'], 'readwrite');
-        transaction.objectStore('settings').put({ key: 'app_config', value: config });
-        return new Promise(r => transaction.oncomplete = r);
-    }
-
-    function showToast(message) {
-        const container = document.getElementById('toast-container');
-        const toast = document.createElement('div');
-        toast.className = 'toast-message bg-black/80 dark:bg-white text-white dark:text-black px-6 py-3 rounded-full shadow-2xl text-xs font-bold flex items-center gap-2 mb-2 backdrop-blur-md';
-        toast.innerHTML = `<span class="material-symbols-outlined text-[18px]">verified</span> ${message}`;
-        container.appendChild(toast);
-        setTimeout(() => toast.remove(), 2000);
-    }
-
-    // --- CR-032: Restored Cloud Engine Functions ---
-    async function handleGasBackup() {
-        const url = document.getElementById('gas-url').value.trim();
-        const folder = document.getElementById('gas-folder-name').value.trim() || "DataEntryBackups";
-        const filename = document.getElementById('gas-file-name').value.trim() || "data-entry-backup.json";
-
-        if (!url) return alert("請先設定雲端 GAS URL");
-
-        const btn = document.getElementById('gas-backup-btn');
-        const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<div class="spinner mx-auto"></div>';
-        btn.disabled = true;
-
-        try {
-            const fields = await getAllFields();
-            const payload = { folder, filename, content: fields };
-            
-            // 使用 no-cors 以解決 Google Apps Script 重定向引起的 CORS 問題
-            await fetch(url, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: JSON.stringify(payload)
-            });
-            showToast("雲端備份請求已發送");
-        } catch (err) {
-            alert("備份出錯: " + err.message);
-        } finally {
-            btn.innerHTML = originalHtml;
-            btn.disabled = false;
+    function resetSync() {
+        startTime = performance.now();
+        accumulatedPause = 0;
+        if (paused) {
+            pauseStart = startTime;
         }
     }
 
-    async function handleGasRestore() {
-        const url = document.getElementById('gas-url').value.trim();
-        const folder = document.getElementById('gas-folder-name').value.trim();
-        const filename = document.getElementById('gas-file-name').value.trim();
-
-        if (!url) return alert("請先設定雲端 GAS URL");
-
-        const btn = document.getElementById('gas-restore-btn');
-        const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<div class="spinner mx-auto"></div>';
-        btn.disabled = true;
-
-        try {
-            const fullUrl = `${url}?folder=${encodeURIComponent(folder)}&filename=${encodeURIComponent(filename)}`;
-            const res = await fetch(fullUrl);
-            if (!res.ok) throw new Error("還原失敗，請檢查 URL 或檔案路徑");
-            const data = await res.json();
-
-            if (Array.isArray(data)) {
-                for (const item of data) await updateField(item);
-                renderFields(await getAllFields());
-                showToast("雲端還原完成");
-            }
-        } catch (err) {
-            alert("還原失敗: " + err.message);
-        } finally {
-            btn.innerHTML = originalHtml;
-            btn.disabled = false;
-        }
+    function updateControls() {
+        amplitudeValue.textContent = `${amplitudeInput.value}°`;
+        intervalValue.textContent = `${Number(intervalInput.value).toFixed(1)}s`;
+        tempoValue.textContent = `${Number(tempoInput.value).toFixed(2)}×`;
+        buildPendulums();
     }
 
-    function renderFields(fields) {
-        const container = document.getElementById('fields-container');
-        const totalText = document.getElementById('total-count');
-        let totalItemsCount = 0;
+    countInput.addEventListener('input', () => {
+        updateControls();
+        resetSync();
+    });
+    amplitudeInput.addEventListener('input', () => {
+        amplitudeValue.textContent = `${amplitudeInput.value}°`;
+        amplitudeDisplay.textContent = `${amplitudeInput.value}°`;
+    });
+    intervalInput.addEventListener('input', () => {
+        intervalValue.textContent = `${Number(intervalInput.value).toFixed(1)}s`;
+        updateControls();
+        resetSync();
+    });
+    tempoInput.addEventListener('input', () => {
+        tempoValue.textContent = `${Number(tempoInput.value).toFixed(2)}×`;
+    });
 
-        walletCache.clear();
-        if (walletSortable) {
-            walletSortable.destroy();
-            walletSortable = null;
-        }
-        itemSortables.forEach(sortable => sortable.destroy());
-        itemSortables.clear();
-
-        container.innerHTML = fields.length === 0 ? `<div class="mt-20 opacity-20 text-center"><span class="material-symbols-outlined text-6xl">inventory_2</span><p class="text-xs font-bold uppercase mt-2 tracking-widest">No Vaults</p></div>` : '';
-
-        const themes = [
-            { from: 'blue-600', via: 'blue-700', to: 'blue-900', text: 'blue-200', icon: 'flight' },
-            { from: 'slate-700', via: 'slate-800', to: 'slate-950', text: 'slate-300', icon: 'account_balance' },
-            { from: 'rose-700', via: 'rose-900', to: 'rose-950', text: 'rose-200', icon: 'vpn_key' },
-            { from: 'emerald-600', via: 'emerald-800', to: 'emerald-950', text: 'emerald-200', icon: 'badge' }
-        ];
-
-        fields.forEach((wallet, idx) => {
-            const theme = themes[idx % themes.length];
-            const items = wallet.items || [];
-            totalItemsCount += items.length;
-            walletCache.set(wallet.id, wallet);
-
-            const walletHtml = `
-            <div class="wallet-card group relative w-full rounded-3xl bg-gradient-to-br from-${theme.from} via-${theme.via} to-${theme.to} shadow-card border-t border-white/20 overflow-hidden" 
-                 data-id="${wallet.id}" style="--z-index: ${idx}">
-                <div class="wallet-header relative h-56 flex flex-col justify-between p-6 cursor-pointer select-none">
-                    <div class="absolute inset-0 bg-white/5 opacity-10 pointer-events-none"></div>
-                    <div class="flex justify-between items-center relative z-10 w-full">
-                        <div class="flex items-center gap-2">
-                            <div class="h-8 w-10 rounded-md bg-gradient-to-br from-yellow-200 to-yellow-500 shadow-sm opacity-90 wallet-drag-handle"></div>
-                            <span class="material-symbols-outlined text-white/50 text-[18px]">contactless</span>
-                        </div>
-                        <div class="absolute left-1/2 -translate-x-1/2 text-center edit-wallet-trigger px-4 py-1 rounded-lg">
-                            <h3 class="text-lg font-extrabold text-white tracking-tight truncate max-w-[150px] uppercase">${wallet.label}</h3>
-                        </div>
-                        <div class="flex gap-2">
-                            <div class="p-2 bg-white/10 rounded-xl backdrop-blur-md"><span class="material-symbols-outlined text-white text-[22px]">${wallet.icon || theme.icon}</span></div>
-                        </div>
-                    </div>
-                    <div class="relative z-10">
-                        <div class="flex justify-between items-center border-t border-white/10 pt-3">
-                            <p class="font-mono text-white/40 text-[10px] tracking-[0.2em] uppercase">Security Vault • ${String(wallet.id).slice(-4)}</p>
-                            <span class="text-[9px] font-bold bg-black/30 text-white px-3 py-1 rounded-full backdrop-blur-md uppercase">${items.length} Items</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="wallet-content bg-background-light dark:bg-surface-dark border-t dark:border-border-dark">
-                    <div class="p-4 space-y-3 item-list-container" data-wallet-id="${wallet.id}">
-                        ${items.map(item => `
-                            <div class="item-card bg-white dark:bg-background-dark rounded-2xl border border-slate-100 dark:border-border-dark shadow-sm flex overflow-hidden" data-item-id="${item.id}">
-                                <div class="item-drag-handle flex items-center justify-center px-3 text-slate-200"><span class="material-symbols-outlined text-[18px]">drag_indicator</span></div>
-                                <div class="edit-zone flex-1 py-4 pr-2 min-w-0 cursor-pointer">
-                                    <p class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-0.5">${item.label}</p>
-                                    <p class="font-mono text-sm font-bold truncate">${item.value}</p>
-                                </div>
-                                <div class="copy-zone w-16 flex items-center justify-center bg-primary text-white active:bg-primary-hover transition-colors" data-copy-value="${String(item.value).replace(/"/g, '&quot;')}">
-                                    <span class="material-symbols-outlined text-xl">content_copy</span>
-                                </div>
-                            </div>
-                        `).join('')}
-                        <button class="add-item-btn w-full py-4 rounded-2xl border-2 border-dashed border-slate-200 dark:border-border-dark text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:border-primary transition-all">+ Add Item</button>
-                    </div>
-                </div>
-            </div>`;
-            container.insertAdjacentHTML('beforeend', walletHtml);
-        });
-
-        totalText.textContent = totalItemsCount;
-
-        walletSortable = new Sortable(container, {
-            animation: 250, handle: '.wallet-drag-handle', ghostClass: 'sortable-ghost',
-            onEnd: async () => {
-                const current = await getAllFields();
-                const ids = Array.from(container.children).map(el => parseInt(el.dataset.id));
-                ids.forEach((id, i) => { const f = current.find(x => x.id === id); if(f) f.order = i; });
-                await updateAllFields(current);
-            }
-        });
-        document.querySelectorAll('.item-list-container').forEach(list => {
-            const sortable = new Sortable(list, {
-                animation: 200, handle: '.item-drag-handle', ghostClass: 'sortable-ghost',
-                onEnd: async () => {
-                    const walletId = parseInt(list.dataset.walletId);
-                    const fields = await getAllFields();
-                    const wallet = fields.find(f => f.id === walletId);
-                    if(wallet) {
-                        const itemIds = Array.from(list.children).map(el => parseInt(el.dataset.itemId));
-                        wallet.items = itemIds.map(id => wallet.items.find(i => i.id === id)).filter(x => x);
-                        await updateField(wallet);
-                    }
-                }
-            });
-            itemSortables.set(list.dataset.walletId, sortable);
-        });
-    }
-
-    const addDialog = document.getElementById('add-dialog');
-    const settingsDialog = document.getElementById('settings-dialog');
-    const deleteItemBtn = document.getElementById('delete-item-btn');
-    let editingContext = null;
-    let walletSortable = null;
-    const itemSortables = new Map();
-    const walletCache = new Map();
-
-    function openAddDialog(context) {
-        editingContext = context;
-        document.getElementById('field-label').value = '';
-        document.getElementById('field-value').value = '';
-        const valGroup = document.getElementById('value-input-group');
-        const dialogTitle = document.getElementById('dialog-title');
-        valGroup.style.display = (context.type === 'new-wallet' || context.type === 'edit-wallet') ? 'none' : 'block';
-        deleteItemBtn.classList.add('hidden');
-        if(context.type === 'new-wallet') { dialogTitle.textContent = "建立新錢包"; }
-        else if(context.type === 'edit-wallet') {
-            dialogTitle.textContent = "修改錢包名稱";
-            document.getElementById('field-label').value = context.walletData.label;
-            deleteItemBtn.classList.remove('hidden');
-            deleteItemBtn.innerHTML = `<span class="material-symbols-outlined text-[18px]">delete</span> 刪除錢包`;
-        } else if(context.type === 'edit-item') {
-            dialogTitle.textContent = "編輯內容";
-            const item = context.walletData.items.find(i => i.id === context.itemId);
-            document.getElementById('field-label').value = item.label;
-            document.getElementById('field-value').value = item.value;
-            deleteItemBtn.classList.remove('hidden');
-        } else { dialogTitle.textContent = "新增內容"; }
-        addDialog.showModal();
-    }
-
-    window.onload = async () => {
-        await initDB();
-        const settings = await getSettings();
-        const shell = document.getElementById('app-shell');
-        if(settings) {
-            if(settings.backgroundImage && settings.backgroundImage !== 'none') shell.style.setProperty('--bg-image', `url(${settings.backgroundImage})`);
-            shell.style.setProperty('--bg-size', `${settings.backgroundScale || 100}%`);
-            if(settings.gasUrl) document.getElementById('gas-url').value = settings.gasUrl;
-            if(settings.gasFolder) document.getElementById('gas-folder-name').value = settings.gasFolder;
-            if(settings.gasFile) document.getElementById('gas-file-name').value = settings.gasFile;
-            if(settings.exportPrefix) document.getElementById('export-prefix').value = settings.exportPrefix;
-        }
-        renderFields(await getAllFields());
-    };
-
-    document.getElementById('settings-btn').onclick = () => settingsDialog.showModal();
-    document.getElementById('settings-close-btn').onclick = () => settingsDialog.close();
-    document.getElementById('dialog-close-btn').onclick = () => addDialog.close();
-    document.getElementById('dialog-cancel-btn').onclick = () => addDialog.close();
-
-    // CR-032: Bind Cloud Buttons
-    document.getElementById('gas-backup-btn').onclick = handleGasBackup;
-    document.getElementById('gas-restore-btn').onclick = handleGasRestore;
-
-    document.getElementById('dialog-save-btn').onclick = async () => {
-        const label = document.getElementById('field-label').value.trim();
-        const value = document.getElementById('field-value').value.trim();
-        if(!label) return;
-        if(editingContext.type === 'new-wallet') await saveField({ type: 'wallet', label, items: [] });
-        else if(editingContext.type === 'edit-wallet') { const w = editingContext.walletData; w.label = label; await updateField(w); }
-        else if(editingContext.type === 'add-item') { const w = editingContext.walletData; w.items.push({ id: Date.now(), label, value }); await updateField(w); }
-        else if(editingContext.type === 'edit-item') { const w = editingContext.walletData; const i = w.items.find(x => x.id === editingContext.itemId); i.label = label; i.value = value; await updateField(w); }
-        addDialog.close(); renderFields(await getAllFields()); showToast("儲存成功");
-    };
-
-    deleteItemBtn.onclick = async () => {
-        if(!confirm("確定要永久刪除？")) return;
-        if(editingContext.type === 'edit-wallet') await deleteField(editingContext.walletData.id);
-        else { const w = editingContext.walletData; w.items = w.items.filter(i => i.id !== editingContext.itemId); await updateField(w); }
-        addDialog.close(); renderFields(await getAllFields()); showToast("已刪除");
-    };
-
-    document.addEventListener('click', async e => {
-        const t = e.target;
-        if(t.closest('.wallet-drag-handle') || t.closest('.item-drag-handle')) return;
-        if(t.closest('#add-wallet-btn-top')) openAddDialog({ type: 'new-wallet' });
-        const editTrigger = t.closest('.edit-wallet-trigger');
-        if(editTrigger) {
-            e.stopPropagation();
-            const walletId = parseInt(editTrigger.closest('.wallet-card').dataset.id);
-            const data = walletCache.get(walletId);
-            openAddDialog({ type: 'edit-wallet', walletData: data });
-            return;
-        }
-        const wh = t.closest('.wallet-header');
-        if(wh) {
-            const card = wh.closest('.wallet-card');
-            const exp = card.classList.contains('expanded');
-            document.querySelectorAll('.wallet-card.expanded').forEach(c => c.classList.remove('expanded'));
-            if(!exp) card.classList.add('expanded');
-        }
-        if(t.closest('.add-item-btn')) {
-            const walletId = parseInt(t.closest('.wallet-card').dataset.id);
-            const data = walletCache.get(walletId);
-            openAddDialog({ type: 'add-item', walletData: data });
-        }
-        if(t.closest('.copy-zone')) navigator.clipboard.writeText(t.closest('.copy-zone').dataset.copyValue).then(() => showToast("已複製至剪貼簿"));
-        else if(t.closest('.edit-zone')) {
-            const card = t.closest('.item-card');
-            const walletId = parseInt(t.closest('.wallet-card').dataset.id);
-            const data = walletCache.get(walletId);
-            openAddDialog({ type: 'edit-item', walletData: data, itemId: parseInt(card.dataset.itemId) });
+    playBtn.addEventListener('click', () => {
+        paused = !paused;
+        if (paused) {
+            pauseStart = performance.now();
+            playBtn.textContent = 'Play';
+        } else {
+            accumulatedPause += performance.now() - pauseStart;
+            playBtn.textContent = 'Pause';
         }
     });
 
-    document.getElementById('icloud-backup-btn').onclick = async () => {
-        const settings = await getSettings() || {};
-        const prefix = settings.exportPrefix || 'vault';
-        const data = await getAllFields();
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-        const name = `${prefix}-${new Date().toISOString().slice(0,10)}.json`;
-        if(navigator.canShare) await navigator.share({ files: [new File([blob], name, {type: 'application/json'})], title: 'Vault Backup' });
-        else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); }
-    };
+    resetBtn.addEventListener('click', resetSync);
 
-    // CR-032: Enhanced Persistence Listeners
-    const settingsFields = ['export-prefix', 'gas-url', 'gas-folder-name', 'gas-file-name'];
-    settingsFields.forEach(id => {
-        document.getElementById(id).onchange = async (e) => {
-            let s = await getSettings() || {};
-            const key = id.replace(/-([a-z])/g, (g) => g[1].toUpperCase()); // kebab to camel
-            s[key === 'exportPrefix' ? 'exportPrefix' : (key === 'gasUrl' ? 'gasUrl' : (key === 'gasFolderName' ? 'gasFolder' : 'gasFile'))] = e.target.value;
-            await saveSettings(s);
-        };
+    window.addEventListener('resize', () => {
+        resizeCanvas();
+        renderScene(0);
     });
 
-    document.getElementById('import-btn-trigger').onclick = () => document.getElementById('import-file').click();
-    document.getElementById('import-file').onchange = e => {
-        const reader = new FileReader();
-        reader.onload = async evt => {
-            const data = JSON.parse(evt.target.result);
-            for(const x of data) await updateField(x);
-            renderFields(await getAllFields()); showToast("數據導入完成");
-        };
-        reader.readAsText(e.target.files[0]);
-    };
-
-    document.getElementById('bg-upload').onchange = e => {
-        const reader = new FileReader();
-        const shell = document.getElementById('app-shell');
-        reader.onload = async evt => {
-            let s = await getSettings() || {}; s.backgroundImage = evt.target.result;
-            await saveSettings(s); shell.style.setProperty('--bg-image', `url(${evt.target.result})`);
-        };
-        reader.readAsDataURL(e.target.files[0]);
-    };
-    document.getElementById('bg-scale').oninput = e => {
-        document.getElementById('scale-val').textContent = e.target.value + '%';
-        document.getElementById('app-shell').style.setProperty('--bg-size', e.target.value + '%');
-    };
-    document.getElementById('reset-bg-btn').onclick = async () => {
-        let s = await getSettings() || {}; s.backgroundImage = 'none';
-        await saveSettings(s); document.getElementById('app-shell').style.setProperty('--bg-image', 'none');
-    };
-    document.getElementById('paste-btn').onclick = async () => {
-        const text = await navigator.clipboard.readText();
-        document.getElementById('field-value').value = text;
-        showToast("已從剪貼簿貼上");
-    };
+    resizeCanvas();
+    updateControls();
+    requestAnimationFrame(draw);
 </script>
 </body>
 </html>
