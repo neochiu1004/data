@@ -1,0 +1,15 @@
+targetUrl: "https://inline.app/booking/YOUR_RESTAURANT"
+datePool: |
+  2026-03-01
+  2026-03-02~2026-03-05
+  2026-03-09, 2026-03-12
+startHour: 10
+endHour: 15
+refreshIntervalSec: 60
+scanTimeoutMs: 5000
+maxSearchMonth: 4
+adultNum: 2
+autoSubmit: 0
+telegram:
+  botToken: ""
+  chatId: ""

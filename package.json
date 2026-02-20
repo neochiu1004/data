@@ -1,0 +1,27 @@
+{
+  "name": "inline-booking-scanner",
+  "version": "1.0.0",
+  "description": "Inline booking auto scanner migrated from userscript",
+  "type": "commonjs",
+  "main": "dist/cli.js",
+  "scripts": {
+    "dev": "tsx src/cli.ts --headful --loop",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/cli.js --loop",
+    "run:once": "node dist/cli.js run:once"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "js-yaml": "^4.1.0",
+    "playwright": "^1.52.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.15.21",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}
